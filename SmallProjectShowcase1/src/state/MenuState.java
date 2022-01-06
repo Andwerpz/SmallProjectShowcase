@@ -98,7 +98,7 @@ public class MenuState extends State{
 
 class MainScrollWindow extends ScrollWindow{
 	
-	String[] projects = new String[] {"Inverse Kinematics", "Peggle", "Metaballs", "Fireworks", "Verlet Physics"};
+	String[] projects = new String[] {"Inverse Kinematics", "Peggle", "Metaballs", "Fireworks", "Verlet Physics", "Cloth Physics"};
 
 	public MainScrollWindow(int x, int y, int width, int height, int realHeight) {
 		super(x, y, width, height, realHeight);
@@ -138,6 +138,10 @@ class MainScrollWindow extends ScrollWindow{
 				
 			case "Verlet Physics":
 				MainPanel.gsm.states.push(new VerletPhysics(MainPanel.gsm));
+				break;
+				
+			case "Cloth Physics":
+				MainPanel.gsm.states.push(new ClothPhysics(MainPanel.gsm));
 				break;
 			}
 		}
