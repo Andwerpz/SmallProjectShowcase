@@ -23,7 +23,7 @@ public class ClothPhysics extends State {
 	Vector3D gravity = new Vector3D(0, -0.1, 0);
 	Vector3D light = new Vector3D(0, -1, 0);
 	
-	Point3D camera = new Point3D(0, 70, -500);
+	Point3D camera = new Point3D(0, 450, 0);
 	double xRot = 0.25;
 	double yRot = 0;
 	
@@ -47,9 +47,11 @@ public class ClothPhysics extends State {
 	Particle[][] cloth;
 	
 	
-	boolean drawTris = false;
-	boolean drawSprings = true;
+	boolean drawTris = true;
+	boolean drawSprings = false;
 	boolean drawParticles = false;
+	
+	int springIterations = 10;
 
 	public ClothPhysics(StateManager gsm) {
 		super(gsm);
@@ -78,15 +80,15 @@ public class ClothPhysics extends State {
 			}
 		}
 		
-		this.cloth = new Particle[100][100];
+		this.cloth = new Particle[50][50];
 		
-		int increment = 5;
+		int increment = 10;
 		
 		for(int i = 0; i < cloth.length; i++) {
 			for(int j = 0; j < cloth[0].length; j++) {
 				int x = i * increment;
 				int z = j * increment;
-				int y = 200;
+				int y = 400;
 				cloth[i][j] = new Particle(new Vector3D(x, y, z));
 				particles.add(cloth[i][j]);
 				
@@ -100,18 +102,18 @@ public class ClothPhysics extends State {
 				
 				//shear springs
 				if(j != 0 && i != 0) {
-					springs.add(new Spring(1, Math.sqrt(2) * increment, cloth[i][j], cloth[i - 1][j - 1]));
+					springs.add(new Spring(0.75, Math.sqrt(2) * increment, cloth[i][j], cloth[i - 1][j - 1]));
 				}
 				if(j != cloth[0].length - 1 && i != 0) {
-					springs.add(new Spring(1, Math.sqrt(2) * increment, cloth[i][j], cloth[i - 1][j + 1]));
+					springs.add(new Spring(0.75, Math.sqrt(2) * increment, cloth[i][j], cloth[i - 1][j + 1]));
 				}
 				
 				//bend springs
 				if(j > 1) {
-					springs.add(new Spring(0.5, increment * 2, cloth[i][j], cloth[i][j - 2]));
+					springs.add(new Spring(0.25, increment * 2, cloth[i][j], cloth[i][j - 2]));
 				}
 				if(i > 1) {
-					springs.add(new Spring(0.5, increment * 2, cloth[i][j], cloth[i - 2][j]));
+					springs.add(new Spring(0.25, increment * 2, cloth[i][j], cloth[i - 2][j]));
 				}
 			}
 		}
@@ -186,9 +188,15 @@ public class ClothPhysics extends State {
 		
 		for(Particle p : particles) {
 			p.tick();
+			
+			//spheres
+			p.constrain(new Vector3D(350, 150, 150), 50);
+			p.constrain(new Vector3D(150, 150, 350), 50);
+			p.constrain(new Vector3D(150, 150, 150), 50);
+			p.constrain(new Vector3D(350, 150, 350), 50);
 		}
 		
-		for(int i = 0; i < 5; i++) {
+		for(int i = 0; i < this.springIterations; i++) {
 			for(Spring s : springs) {
 				s.tick();
 			}
@@ -274,7 +282,7 @@ public class ClothPhysics extends State {
 				}
 			}
 			
-			projected.sort((a, b) -> Double.compare(a.zBuffer, b.zBuffer));
+			projected.sort((a, b) -> -Double.compare(a.zBuffer, b.zBuffer));
 			
 			for(Triangle t : projected) {
 				t.draw(g);
@@ -443,6 +451,15 @@ public class ClothPhysics extends State {
 		public void constrain() {
 			if(this.pos.y < 0) {
 				this.pos.y = 0;
+			}
+		}
+		
+		public void constrain(Vector3D center, double radius) {
+			double dist = MathTools.dist3D(center, this.pos);
+			if(dist < radius) {
+				Vector3D toSurface = new Vector3D(center, this.pos);
+				toSurface.setMagnitude(radius - dist);
+				this.pos.addVector(toSurface);
 			}
 		}
 		
