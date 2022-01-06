@@ -33,7 +33,7 @@ public class VerletPhysics extends State {
 		springs = new ArrayList<Spring>();
 		
 		ArrayList<ArrayList<Particle>> grid = new ArrayList<ArrayList<Particle>>();
-		for(int i = 0; i < 21; i++) {
+		for(int i = 0; i < 41; i++) {
 			grid.add(new ArrayList<Particle>());
 			for(int j = 0; j < 61; j++) {
 				Particle p = new Particle(new Vector(100 + j * 10, 50 + i * 10), new Vector(Math.random() * 10 - 5, Math.random() * 10 - 5));
@@ -49,6 +49,14 @@ public class VerletPhysics extends State {
 				}
 				if(i != 0) {
 					springs.add(new Spring(1, 10, grid.get(i).get(j), grid.get(i - 1).get(j)));
+				}
+				
+				//diagonal springs
+				if(j != 0 && i != 0) {
+					//springs.add(new Spring(1, Math.sqrt(2) * 10, grid.get(i).get(j), grid.get(i - 1).get(j - 1)));
+				}
+				if(j != 60 && i != 0) {
+					//springs.add(new Spring(1, Math.sqrt(2) * 10, grid.get(i).get(j), grid.get(i - 1).get(j + 1)));
 				}
 			}
 		}
@@ -153,6 +161,7 @@ public class VerletPhysics extends State {
 			particles.get(whichParticle).pinned = false;
 		}
 		
+		whichParticle = -1;
 		particleSelected = false;
 	}
 
@@ -167,7 +176,7 @@ public class VerletPhysics extends State {
 		Vector pos, prevPos;
 		boolean pinned = false;	//does this particle move
 		
-		double radius = 3;
+		double radius = 5;
 		
 		public Particle(Vector pos) {
 			this.pos = new Vector(pos);
@@ -199,7 +208,7 @@ public class VerletPhysics extends State {
 		}
 		
 		public void draw(Graphics g) {
-			g.fillOval((int) (this.pos.x - this.radius), (int) (this.pos.y - this.radius), (int) (this.radius * 2), (int) (this.radius * 2));
+			//g.fillOval((int) (this.pos.x - this.radius), (int) (this.pos.y - this.radius), (int) (this.radius * 2), (int) (this.radius * 2));
 		}
 		
 		//constrain the point to within the window

@@ -32,12 +32,22 @@ public class Fireworks extends State {
 	
 	public boolean pressed = false;
 	public java.awt.Point prevMouse = new java.awt.Point();
+	
+	Particle[][] ground = new Particle[11][11];
 
 	public Fireworks(StateManager gsm) {
 		super(gsm);
 
 		particles = new ArrayList<Particle>();
 		
+		for(int i = 0; i < ground.length; i++) {
+			for(int j = 0; j < ground[0].length; j++) {
+				int x = i * 32 - 160;
+				int z = j * 32 + 80;
+				int y = -10;
+				ground[i][j] = new Particle(x, y, z, 0, 0, 0, false, 90, Color.WHITE);
+			}
+		}
 	}
 
 	@Override
@@ -122,6 +132,12 @@ public class Fireworks extends State {
 		
 		g.setColor(new Color(51, 51, 51));
 		g.fillRect(0, 0, MainPanel.WIDTH, MainPanel.HEIGHT);
+		
+		for(Particle[] pArr : ground) {
+			for(Particle p : pArr) {
+				p.draw(g);
+			}
+		}
 		
 		for(Particle p : particles) {
 			p.draw(g);
