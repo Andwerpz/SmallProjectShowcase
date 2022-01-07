@@ -98,13 +98,20 @@ public class MenuState extends State{
 
 class MainScrollWindow extends ScrollWindow{
 	
-	String[] projects = new String[] {"Inverse Kinematics", "Peggle", "Metaballs", "Fireworks", "Verlet Physics", "Cloth Physics"};
+	String[] projects = new String[] {
+			"Inverse Kinematics", 
+			"Metaballs", 
+			"Fireworks", 
+			"Verlet Physics", 
+			"Cloth Physics",
+			"Roguelike Map Generator",
+			};
 
 	public MainScrollWindow(int x, int y, int width, int height, int realHeight) {
 		super(x, y, width, height, realHeight);
 		
 		for(int i = 0; i < projects.length; i++) {
-			im.addInput(new Button(20, i * 100 + 20, 150, 25, projects[i], projects[i]));
+			im.addInput(new Button(20, i * 50 + 20, 150, 25, projects[i], projects[i]));
 		}
 	}
 
@@ -142,6 +149,10 @@ class MainScrollWindow extends ScrollWindow{
 				
 			case "Cloth Physics":
 				MainPanel.gsm.states.push(new ClothPhysics(MainPanel.gsm));
+				break;
+				
+			case "Roguelike Map Generator":
+				MainPanel.gsm.states.push(new RoguelikeMapGenerator(MainPanel.gsm));
 				break;
 			}
 		}

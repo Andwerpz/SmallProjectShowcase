@@ -1,5 +1,3 @@
-/state/
 /util/
-/input/
-/main/
-/shapes/
+/state/
+/RoguelikeMapGenerator.class
