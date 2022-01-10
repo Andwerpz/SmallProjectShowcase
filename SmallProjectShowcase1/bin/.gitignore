@@ -1,7 +1,8 @@
-/grass spritesheet2.png
+/shapes/
 /state/
-/grass spritesheet 3.png
-/grass spritesheet 4.png
 /util/
-/room1_texture.jpg
-/dirt path.png
+/room1_texture.png
+/room2_texture.png
+/room3_texture.png
+/room4_texture.png
+/room5_texture.png

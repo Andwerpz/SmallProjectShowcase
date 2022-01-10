@@ -22,6 +22,8 @@ import util.Vector;
 
 public class TileTextureEditor extends State {
 	
+	int selectedTile = 0;
+	
 	InputManager im = new InputManager();
 	
 	Tile tile;
@@ -68,6 +70,7 @@ public class TileTextureEditor extends State {
 		im.addInput(new ToggleButton(10, 115, 100, 25, "Path Mode", "pathModeBtn"));
 		im.addInput(new Button(10, 150, 50, 25, "<< Prev", "switchPathPrevBtn"));
 		im.addInput(new Button(60, 150, 50, 25, " Next >>", "switchPathNextBtn"));
+		im.addInput(new Button(10, 185, 100, 25, "Next Tile", "switchTileBtn"));
 		
 		this.tile = RoguelikeMapGenerator.roomTiles.get(0);
 		
@@ -410,6 +413,14 @@ public class TileTextureEditor extends State {
 			if(selectedPath == -1) {
 				selectedPath = paths.size() - 1;
 			}
+			break;
+			
+		case "switchTileBtn":
+			selectedTile ++;
+			if(selectedTile == RoguelikeMapGenerator.roomTiles.size()) {
+				selectedTile = 0;
+			}
+			this.setTile(selectedTile);
 			break;
 			
 		}

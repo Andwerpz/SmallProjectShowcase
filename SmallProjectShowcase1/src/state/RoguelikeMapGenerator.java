@@ -17,6 +17,7 @@ import java.util.StringTokenizer;
 import input.Button;
 import input.InputManager;
 import main.MainPanel;
+import util.GraphicsTools;
 import util.Vector;
 
 public class RoguelikeMapGenerator extends State {
@@ -28,9 +29,10 @@ public class RoguelikeMapGenerator extends State {
 	static ArrayList<Tile> lootTiles = new ArrayList<Tile>();	//chests, shops, ect
 	
 	ArrayList<ArrayList<Integer>> map;
+	BufferedImage mapTexture;
 
 	int mapSize = 500;
-	int tileSize = 30;
+	int tileSize = 32;
 	
 	Vector offset = new Vector(-(mapSize * tileSize) / 2 + MainPanel.WIDTH / 2, -(mapSize * tileSize) / 2 + MainPanel.HEIGHT / 2);
 	
@@ -112,10 +114,13 @@ public class RoguelikeMapGenerator extends State {
 			}
 		}
 		
+		g.drawImage(mapTexture, (int) offset.x, (int) offset.y, tileSize * mapSize, tileSize * mapSize, null);
+		
 		im.draw(g);
 	}
 	
 	public void generateMap() {
+		this.mapTexture = new BufferedImage(mapSize * tileSize, mapSize * tileSize, BufferedImage.TYPE_INT_ARGB);
 		this.map = new ArrayList<ArrayList<Integer>>();
 		for(int i = 0; i < mapSize; i++) {
 			this.map.add(new ArrayList<Integer>());
@@ -142,6 +147,9 @@ public class RoguelikeMapGenerator extends State {
 		for(int[] e : startTile.exits) {
 			exits.add(new int[] {e[0] + startX, e[1] + startY});
 		}
+		
+		Graphics gMap = this.mapTexture.getGraphics();
+		gMap.drawImage(startTile.texture, startX * tileSize, startY * tileSize, null);
 		
 		int roomCounter = 0;
 		
@@ -255,6 +263,10 @@ public class RoguelikeMapGenerator extends State {
 					exits.add(new int[] {exit[0] + minX, exit[1] + minY});
 				}
 				
+				//draw tile texture onto map
+				Graphics gMap = this.mapTexture.getGraphics();
+				gMap.drawImage(t.texture, minX * tileSize, minY * tileSize, null);
+				
 				return 1;
 			}
 
@@ -283,6 +295,7 @@ public class RoguelikeMapGenerator extends State {
 				+ "0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 \r\n"
 				+ "0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 \r\n"
 				+ "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ",
+				"/room4_texture.png",
 				
 				  "0 1 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 1 0 \r\n"
 				+ "0 1 1 1 1 1 1 0 0 0 0 0 1 1 1 1 1 1 0 \r\n"
@@ -304,6 +317,7 @@ public class RoguelikeMapGenerator extends State {
 				+ "0 0 0 0 0 0 0 1 1 1 1 1 0 0 0 0 0 0 0 \r\n"
 				+ "0 0 0 0 0 0 0 0 1 1 1 0 0 0 0 0 0 0 0 \r\n"
 				+ "0 0 0 0 0 0 0 0 0 2 0 0 0 0 0 0 0 0 0 ",
+				"/room2_texture.png",
 				
 				  "0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 \r\n"
 				+ "0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 \r\n"
@@ -328,6 +342,7 @@ public class RoguelikeMapGenerator extends State {
 				+ "0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 \r\n"
 				+ "0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 \r\n"
 				+ "0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 ",
+				"/room5_texture.png",
 				
 				  "0 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \r\n"
 				+ "0 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \r\n"
@@ -355,6 +370,7 @@ public class RoguelikeMapGenerator extends State {
 				+ "0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 \r\n"
 				+ "0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 \r\n"
 				+ "0 0 0 0 0 0 0 0 0 0 0 0 0 0 2 0 0 0 0 0 0 0 0 0 0 0 0 ",
+				"/room1_texture.png",
 				
 				  "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2 0 0 0 0 0 0 0 0 0 0 \r\n"
 				+ "0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 \r\n"
@@ -377,11 +393,14 @@ public class RoguelikeMapGenerator extends State {
 				+ "0 0 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 0 0 \r\n"
 				+ "0 0 0 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 0 0 0 \r\n"
 				+ "0 0 0 0 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 0 0 0 0 \r\n"
-				+ "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2 0 0 0 0 0 0 0 "
+				+ "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2 0 0 0 0 0 0 0 ",
+				"/room3_texture.png"
 				
 		};
 		
-		for(String s : defaultRoomTiles) {
+		for(int i = 0; i < defaultRoomTiles.length; i += 2) {
+			String s = defaultRoomTiles[i];
+			String path = defaultRoomTiles[i + 1];
 			StringTokenizer lines = new StringTokenizer(s, "\r\n");
 			ArrayList<ArrayList<Integer>> nextTile = new ArrayList<ArrayList<Integer>>();
 			while(lines.hasMoreTokens()) {
@@ -391,7 +410,25 @@ public class RoguelikeMapGenerator extends State {
 					nextTile.get(nextTile.size() - 1).add(Integer.parseInt(st.nextToken()));
 				}
 			}
-			roomTiles.add(new Tile(nextTile, new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB)));
+			
+			BufferedImage img = GraphicsTools.loadImage(path);
+			BufferedImage copy = new BufferedImage(img.getWidth(), img.getHeight(), BufferedImage.TYPE_INT_ARGB);
+			
+			for(int j = 0; j < img.getHeight(); j++) {
+				for(int k = 0; k < img.getWidth(); k++) {
+					int RGB = img.getRGB(k, j);
+					
+					if(RGB == (255 << 24)) {
+						RGB = 0;
+					}
+					
+					//System.out.println(Integer.toBinaryString(RGB));
+					
+					copy.setRGB(k, j, RGB);
+				}
+			}
+			
+			roomTiles.add(new Tile(nextTile, copy));
 			System.out.println(roomTiles.get(roomTiles.size() - 1));
 		}
 	}
