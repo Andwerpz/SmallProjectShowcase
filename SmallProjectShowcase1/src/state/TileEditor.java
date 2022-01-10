@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import input.Button;
 import input.InputManager;
 import input.TextField;
-import state.RoguelikeMapGenerator.Tile;
 import util.TextBox;
 import util.Vector;
 

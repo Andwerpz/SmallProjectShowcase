@@ -10,7 +10,11 @@ import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.awt.image.BufferedImageOp;
+import java.awt.image.ColorModel;
+import java.awt.image.IndexColorModel;
 import java.awt.image.RescaleOp;
+import java.awt.image.WritableRaster;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -160,6 +164,25 @@ public class GraphicsTools {
 		}
 		
 		return animation;
-		
+	}
+	
+	public static void saveBufferedImageToFile(BufferedImage img) {
+		File outputfile = new File("savedimage.png");
+		try {
+			
+			ImageIO.write(convertRGBA(img), "png", outputfile);
+			System.out.println("image saved");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public static BufferedImage convertRGBA(BufferedImage img) {
+	    int width = img.getWidth();
+	    int height = img.getHeight();
+	    BufferedImage newRGB = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+	    newRGB .createGraphics().drawImage(img, 0, 0, width, height, null);
+	    return newRGB;
 	}
 }
