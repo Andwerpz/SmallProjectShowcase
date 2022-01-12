@@ -9,7 +9,9 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.image.BufferedImage;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Queue;
 import java.util.Stack;
 import java.util.StringTokenizer;
@@ -30,6 +32,7 @@ public class RoguelikeMapGenerator extends State {
 	
 	ArrayList<ArrayList<Integer>> map;
 	BufferedImage mapTexture;
+	BufferedImage wallTexture;
 
 	int mapSize = 500;
 	int tileSize = 32;
@@ -42,8 +45,72 @@ public class RoguelikeMapGenerator extends State {
 	boolean pressedRight = false;
 	boolean pressedLeft = false;
 	
+	static ArrayList<BufferedImage[]> walls;
+	static ArrayList<BufferedImage> tileSpritesheet;
+	
+	//4 0 5
+	//2 # 3
+	//6 1 7
+	
+	int[] dx = {-1, 1, 0, 0, -1, -1, 1, 1};
+	int[] dy = {0, 0, -1, 1, -1, 1, -1, 1};
+	
+	//Path Tiles / Wall Tile decoder:
+	
+	//for paths, 1 means same as path texture, 0 means other texture
+	//for walls, 1 means lower elevation, zero means higher or equal elevation
+	
+	//1: 
+	//1 1
+	//1 1
+	
+	//2:   3:   4:   5:
+	//1 0  0 1  0 0  0 0
+	//0 0  0 0  0 1  1 0
+	
+	//6:   7:   8:   9:
+	//1 1  1 1  0 1  1 0
+	//1 0  0 1  1 1  1 1
+	
+	//10:  11:  12:  13:
+	//1 1  0 1  0 0  1 0
+	//0 0  0 1  1 1  1 0
+	
+	//14:  15:
+	//1 0  0 1
+	//0 1  1 0
+	
+	//walls only: 
+	//16: base vertical wall
+	//17: tileable vertical wall
+	
+	static ArrayList<Integer> oo = new ArrayList<Integer>(Arrays.asList(1, 1));
+	static ArrayList<Integer> oz = new ArrayList<Integer>(Arrays.asList(1, 0));
+	static ArrayList<Integer> zo = new ArrayList<Integer>(Arrays.asList(0, 1));
+	static ArrayList<Integer> zz = new ArrayList<Integer>(Arrays.asList(0, 0));
+	
+	static HashMap<ArrayList<ArrayList<Integer>>, Integer> keyToPath = new HashMap<ArrayList<ArrayList<Integer>>, Integer>() {{
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(oo, oo)), 0);
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(oz, zz)), 1);
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(zo, zz)), 2);
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(zz, zo)), 3);
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(zz, oz)), 4);
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(oo, oz)), 5);
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(oo, zo)), 6);
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(zo, oo)), 7);
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(oz, oo)), 8);
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(oo, zz)), 9);
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(zo, zo)), 10);
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(zz, oo)), 11);
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(oz, oz)), 12);
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(oz, zo)), 13);
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(zo, oz)), 14);
+	}};
+	
 	public RoguelikeMapGenerator(StateManager gsm) {
 		super(gsm);
+		
+		loadWallTextures();
 		
 		im = new InputManager();
 		
@@ -64,11 +131,33 @@ public class RoguelikeMapGenerator extends State {
 			}
 			System.out.println();
 		}
+		
+		
 	}
 
 	@Override
 	public void init() {
 		// TODO Auto-generated method stub
+		
+	}
+	
+	public static void loadWallTextures() {
+		
+		walls = new ArrayList<BufferedImage[]>();
+		
+		String[] paths = {"/stone wall.png"};
+		
+		for(String s : paths) {
+			ArrayList<BufferedImage> animation = GraphicsTools.loadAnimation(s, 16, 16);
+			
+			BufferedImage[] next = new BufferedImage[17];
+			
+			for(int i = 0; i < animation.size(); i++) {
+				next[i] = animation.get(i);
+			}
+			
+			walls.add(next);
+		}
 		
 	}
 
@@ -93,6 +182,8 @@ public class RoguelikeMapGenerator extends State {
 	@Override
 	public void draw(Graphics g) {
 		
+		//drawing tiles
+		/*
 		for (int i = 0; i < map.size(); i++) {
 			for (int j = 0; j < map.get(i).size(); j++) {
 				int x = (int) offset.x + j * tileSize;
@@ -113,8 +204,10 @@ public class RoguelikeMapGenerator extends State {
 
 			}
 		}
+		*/
 		
 		g.drawImage(mapTexture, (int) offset.x, (int) offset.y, tileSize * mapSize, tileSize * mapSize, null);
+		g.drawImage(wallTexture, (int) offset.x, (int) offset.y, tileSize * mapSize, tileSize * mapSize, null);
 		
 		im.draw(g);
 	}
@@ -162,6 +255,8 @@ public class RoguelikeMapGenerator extends State {
 				roomCounter ++;
 			}
 		}
+		
+		this.processWallTextures();
 	}
 	
 	public int addTileToMap(ArrayList<Tile> tiles, int[] nextExit, Queue<int[]> exits) {
@@ -272,6 +367,99 @@ public class RoguelikeMapGenerator extends State {
 
 		}
 		return -1;
+	}
+	
+	//includes out of tile textures
+	public void processWallTextures() {
+		this.wallTexture = new BufferedImage(mapSize * tileSize, mapSize * tileSize, BufferedImage.TYPE_INT_ARGB);
+		Graphics gImg = this.wallTexture.getGraphics();
+		
+		BufferedImage[] wallTex = walls.get(0); 	//stone wall
+		
+		//first draw vertical textures
+		for(int i = 0; i < this.mapSize - 1; i++) {
+			for(int j = 0; j < this.mapSize; j++) {
+				if(this.map.get(i).get(j) == 0 && this.map.get(i + 1).get(j) != 0) {
+					int x = j * this.tileSize;
+					int y = (i - 0) * this.tileSize;
+					
+					
+					
+					gImg.drawImage(wallTex[15], x, y, tileSize, tileSize, null);
+				}
+			}
+		}
+		
+		//draw floor textures now
+		for(int i = 0; i < this.mapSize; i++) {
+			for(int j = 0; j < this.mapSize; j++) {
+				if(this.map.get(i).get(j) == 0) {
+					
+					if((i - 1) < 0) {
+						continue;
+					}
+					
+					BufferedImage img = this.setWallTile(wallTex, i, j);
+					
+					int x = j * this.tileSize;
+					int y = (i - 1) * this.tileSize;
+					
+					
+					
+					gImg.drawImage(img, x, y, tileSize, tileSize, null);
+				}
+			}
+		}
+	}
+	
+	public BufferedImage setWallTile(BufferedImage[] wallTex, int row, int col) {
+		
+		boolean[] isLower = new boolean[8];
+		
+		for(int i = 0; i < dx.length; i++) {
+			int x = row + dx[i];
+			int y = col + dy[i];
+			
+			if(x < 0 || y < 0 || x >= map.size() || y >= map.get(0).size()) {
+				continue;
+			}
+			
+			if(map.get(x).get(y) == 1) {
+				isLower[i] = true;
+			}
+		}
+		
+		//have an array of 2x2 associated with each path tile texture. 
+		//use the booleans to set the key for this specific path tile
+		
+		//4 0 5
+		//2 # 3
+		//6 1 7
+		
+		ArrayList<ArrayList<Integer>> key = new ArrayList<ArrayList<Integer>>();
+		
+		key.add(new ArrayList<Integer>(Arrays.asList(0, 0)));
+		key.add(new ArrayList<Integer>(Arrays.asList(0, 0)));
+		
+		if(isLower[2] || isLower[4] || isLower[0]) {
+			key.get(0).set(0, 1);
+		}
+		if(isLower[0] || isLower[5] || isLower[3]) {
+			key.get(0).set(1, 1);
+		}
+		if(isLower[2] || isLower[6] || isLower[1]) {
+			key.get(1).set(0, 1);
+		}
+		if(isLower[1] || isLower[7] || isLower[3]) {
+			key.get(1).set(1, 1);
+		}
+		
+		if(this.keyToPath.containsKey(key)) {
+			return wallTex[this.keyToPath.get(key)];
+		}
+		
+		return new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+		
 	}
 	
 	public void loadDefaultTiles() {

@@ -57,6 +57,54 @@ public class TileTextureEditor extends State {
 	
 	int[] dx = {-1, 1, 0, 0, -1, -1, 1, 1};
 	int[] dy = {0, 0, -1, 1, -1, 1, -1, 1};
+	
+	//Path Tiles / Wall Tile decoder:
+	
+	//for paths, 1 means same as path texture, 0 means other texture
+	//for walls, 1 means lower elevation, zero means higher or equal elevation
+	
+	//1: 
+	//1 1
+	//1 1
+	
+	//2:   3:   4:   5:
+	//1 0  0 1  0 0  0 0
+	//0 0  0 0  0 1  1 0
+	
+	//6:   7:   8:   9:
+	//1 1  1 1  0 1  1 0
+	//1 0  0 1  1 1  1 1
+	
+	//10:  11:  12:  13:
+	//1 1  0 1  0 0  1 0
+	//0 0  0 1  1 1  1 0
+	
+	//14:  15:
+	//1 0  0 1
+	//0 1  1 0
+	
+	static ArrayList<Integer> oo = new ArrayList<Integer>(Arrays.asList(1, 1));
+	static ArrayList<Integer> oz = new ArrayList<Integer>(Arrays.asList(1, 0));
+	static ArrayList<Integer> zo = new ArrayList<Integer>(Arrays.asList(0, 1));
+	static ArrayList<Integer> zz = new ArrayList<Integer>(Arrays.asList(0, 0));
+	
+	static HashMap<ArrayList<ArrayList<Integer>>, Integer> keyToPath = new HashMap<ArrayList<ArrayList<Integer>>, Integer>() {{
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(oo, oo)), 0);
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(oz, zz)), 1);
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(zo, zz)), 2);
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(zz, zo)), 3);
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(zz, oz)), 4);
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(oo, oz)), 5);
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(oo, zo)), 6);
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(zo, oo)), 7);
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(oz, oo)), 8);
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(oo, zz)), 9);
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(zo, zo)), 10);
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(zz, oo)), 11);
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(oz, oz)), 12);
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(oz, zo)), 13);
+		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(zo, oz)), 14);
+	}};
 
 	public TileTextureEditor(StateManager gsm) {
 		super(gsm);
@@ -227,53 +275,6 @@ public class TileTextureEditor extends State {
 			}
 		}
 	}
-	
-	//Path Tiles:
-						
-	//1 means same as path texture, 0 means other texture
-	
-	//1: 
-	//1 1
-	//1 1
-	
-	//2:   3:   4:   5:
-	//1 0  0 1  0 0  0 0
-	//0 0  0 0  0 1  1 0
-	
-	//6:   7:   8:   9:
-	//1 1  1 1  0 1  1 0
-	//1 0  0 1  1 1  1 1
-	
-	//10:  11:  12:  13:
-	//1 1  0 1  0 0  1 0
-	//0 0  0 1  1 1  1 0
-	
-	//14:  15:
-	//1 0  0 1
-	//0 1  1 0
-	
-	static ArrayList<Integer> oo = new ArrayList<Integer>(Arrays.asList(1, 1));
-	static ArrayList<Integer> oz = new ArrayList<Integer>(Arrays.asList(1, 0));
-	static ArrayList<Integer> zo = new ArrayList<Integer>(Arrays.asList(0, 1));
-	static ArrayList<Integer> zz = new ArrayList<Integer>(Arrays.asList(0, 0));
-	
-	static HashMap<ArrayList<ArrayList<Integer>>, Integer> keyToPath = new HashMap<ArrayList<ArrayList<Integer>>, Integer>() {{
-		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(oo, oo)), 0);
-		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(oz, zz)), 1);
-		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(zo, zz)), 2);
-		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(zz, zo)), 3);
-		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(zz, oz)), 4);
-		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(oo, oz)), 5);
-		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(oo, zo)), 6);
-		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(zo, oo)), 7);
-		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(oz, oo)), 8);
-		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(oo, zz)), 9);
-		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(zo, zo)), 10);
-		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(zz, oo)), 11);
-		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(oz, oz)), 12);
-		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(oz, zo)), 13);
-		put(new ArrayList<ArrayList<Integer>>(Arrays.asList(zo, oz)), 14);
-	}};
 	
 	public void setPathTile(BufferedImage pathTex, int row, int col) {
 		
