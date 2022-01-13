@@ -34,7 +34,7 @@ public class RoguelikeMapGenerator extends State {
 	BufferedImage mapTexture;
 	BufferedImage wallTexture;
 
-	int mapSize = 500;
+	int mapSize = 250;
 	int tileSize = 32;
 	
 	Vector offset = new Vector(-(mapSize * tileSize) / 2 + MainPanel.WIDTH / 2, -(mapSize * tileSize) / 2 + MainPanel.HEIGHT / 2);
@@ -111,6 +111,7 @@ public class RoguelikeMapGenerator extends State {
 		super(gsm);
 		
 		loadWallTextures();
+		tileSpritesheet = GraphicsTools.loadAnimation("/tileset spritesheet 3.png", 16, 16);
 		
 		im = new InputManager();
 		
@@ -125,12 +126,12 @@ public class RoguelikeMapGenerator extends State {
 		
 		this.generateMap();
 		
-		for(ArrayList<Integer> a : this.map) {
-			for(Integer i : a) {
-				System.out.print(i + " ");
-			}
-			System.out.println();
-		}
+//		for(ArrayList<Integer> a : this.map) {
+//			for(Integer i : a) {
+//				System.out.print(i + " ");
+//			}
+//			System.out.println();
+//		}
 		
 		
 	}
@@ -212,6 +213,9 @@ public class RoguelikeMapGenerator extends State {
 		im.draw(g);
 	}
 	
+	int minConnectorLength = 5;
+	int maxConnectorLength = 10;
+	
 	public void generateMap() {
 		this.mapTexture = new BufferedImage(mapSize * tileSize, mapSize * tileSize, BufferedImage.TYPE_INT_ARGB);
 		this.map = new ArrayList<ArrayList<Integer>>();
@@ -223,9 +227,11 @@ public class RoguelikeMapGenerator extends State {
 		}
 		
 		//pick random tile to start
-		Tile startTile = roomTiles.get((int) (Math.random() * (double) roomTiles.size()));
+		//Tile startTile = roomTiles.get((int) (Math.random() * (double) roomTiles.size()));
+		Tile startTile = roomTiles.get((int) (0));
 		
 		Queue<int[]> exits = new ArrayDeque<int[]>();
+		Queue<Vector> exitDir = new ArrayDeque<Vector>();
 		
 		int startX = mapSize / 2;
 		int startY = mapSize / 2;
@@ -239,6 +245,25 @@ public class RoguelikeMapGenerator extends State {
 		
 		for(int[] e : startTile.exits) {
 			exits.add(new int[] {e[0] + startX, e[1] + startY});
+			
+			Vector eDir = new Vector(0, 0);
+			for(int i = 0; i < 4; i++) {
+				int x = e[0] + dx[i];
+				int y = e[1] + dy[i];
+				
+				if(
+						x < 0 || x >= startTile.map.get(0).size() || 
+						y < 0 || y >= startTile.map.size()) {
+					eDir = new Vector(dx[i], dy[i]);
+					break;
+				}
+				else if(startTile.map.get(e[1] + dy[i]).get(e[0] + dx[i]) == 1) {
+					eDir = new Vector(-dx[i], -dy[i]);
+					break;
+				}
+			}
+			//System.out.println(eDir);
+			exitDir.add(eDir);
 		}
 		
 		Graphics gMap = this.mapTexture.getGraphics();
@@ -251,7 +276,9 @@ public class RoguelikeMapGenerator extends State {
 				break;
 			}
 			
-			if(this.addTileToMap(roomTiles, exits.poll(), exits) != -1) {
+			//System.out.println(exitDir);
+			
+			if(this.addTileToMap(roomTiles, exits, exitDir) != -1) {
 				roomCounter ++;
 			}
 		}
@@ -259,10 +286,16 @@ public class RoguelikeMapGenerator extends State {
 		this.processWallTextures();
 	}
 	
-	public int addTileToMap(ArrayList<Tile> tiles, int[] nextExit, Queue<int[]> exits) {
+	public int addTileToMap(ArrayList<Tile> tiles, Queue<int[]> exits, Queue<Vector> exitDir) {
+		if(exits.size() == 0) {
+			return -1;
+		}
+		
 		int[] dx = {-1, 1, 0, 0, 0};
 		int[] dy = {0, 0, -1, 1, 0};
 		
+		int[] nextExit = exits.poll();
+		Vector nextExitDir = exitDir.poll();
 		int ox = nextExit[0];
 		int oy = nextExit[1];
 		
@@ -273,6 +306,15 @@ public class RoguelikeMapGenerator extends State {
 		
 		for(Tile t : tiles) {
 			for(int[] e : t.exits) {
+				
+				//determine if both exits are facing the same direction
+				if(
+						e[0] + nextExitDir.x < 0 || e[0] + nextExitDir.x >= t.map.get(0).size() ||
+						e[1] + nextExitDir.y < 0 || e[1] + nextExitDir.y >= t.map.size() ||
+						t.map.get(e[1] + (int) nextExitDir.y).get(e[0] + (int) nextExitDir.x) == 0) {
+					continue;
+				}
+				
 				int ex = e[0];
 				int ey = e[1];
 				
@@ -356,11 +398,32 @@ public class RoguelikeMapGenerator extends State {
 				//add exits to stack
 				for(int[] exit : t.exits) {
 					exits.add(new int[] {exit[0] + minX, exit[1] + minY});
+					
+					Vector eDir = new Vector(0, 0);
+					for(int i = 0; i < 4; i++) {
+						int x = exit[0] + dx[i];
+						int y = exit[1] + dy[i];
+						
+						if(
+								x < 0 || x >= t.map.get(0).size() || 
+								y < 0 || y >= t.map.size()) {
+							eDir = new Vector(dx[i], dy[i]);
+							break;
+						}
+						else if(t.map.get(exit[1] + dy[i]).get(exit[0] + dx[i]) == 1) {
+							eDir = new Vector(-dx[i], -dy[i]);
+							break;
+						}
+					}
+					//System.out.println(eDir);
+					exitDir.add(eDir);
 				}
 				
 				//draw tile texture onto map
 				Graphics gMap = this.mapTexture.getGraphics();
 				gMap.drawImage(t.texture, minX * tileSize, minY * tileSize, null);
+				
+				//System.out.println(nextExitDir);
 				
 				return 1;
 			}
@@ -379,13 +442,36 @@ public class RoguelikeMapGenerator extends State {
 		//first draw vertical textures
 		for(int i = 0; i < this.mapSize - 1; i++) {
 			for(int j = 0; j < this.mapSize; j++) {
+				
+				if(this.map.get(i).get(j) != 0) {
+					continue;
+				}
+				
+				boolean foundLower = false;
+				
+				for(int k = 0; k < dx.length; k++) {
+					int x = j + dx[k];
+					int y = i + dy[k];
+					
+					if(x >= 0 && y >= 0 && y < this.mapSize && x < this.mapSize && this.map.get(y).get(x) == 1) {
+						foundLower = true;
+						break;
+					}
+				}
+				
+				int x = j * this.tileSize;
+				int y = (i - 0) * this.tileSize;
+				
+				if(foundLower) {
+					gImg.drawImage(wallTex[16], x, y, tileSize, tileSize, null);
+				}
+				
 				if(this.map.get(i).get(j) == 0 && this.map.get(i + 1).get(j) != 0) {
-					int x = j * this.tileSize;
-					int y = (i - 0) * this.tileSize;
-					
-					
+					x = j * this.tileSize;
+					y = (i - 0) * this.tileSize;
 					
 					gImg.drawImage(wallTex[15], x, y, tileSize, tileSize, null);
+					
 				}
 			}
 		}
@@ -458,7 +544,7 @@ public class RoguelikeMapGenerator extends State {
 			return wallTex[this.keyToPath.get(key)];
 		}
 		
-		return new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+		return tileSpritesheet.get(17);
 		
 	}
 	
@@ -649,7 +735,7 @@ public class RoguelikeMapGenerator extends State {
 		case "tileEditorBtn":
 			this.gsm.states.add(new TileEditor(this.gsm));
 			break;
-			
+			 
 		case "tileTextureEditorBtn":
 			TileTextureEditor state = new TileTextureEditor(this.gsm);
 			this.gsm.states.add(state);
