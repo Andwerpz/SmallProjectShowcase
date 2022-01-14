@@ -120,25 +120,7 @@ public class TileTextureEditor extends State {
 		im.addInput(new Button(60, 150, 50, 25, " Next >>", "switchPathNextBtn"));
 		im.addInput(new Button(10, 185, 100, 25, "Next Tile", "switchTileBtn"));
 		
-		this.tile = RoguelikeMapGenerator.roomTiles.get(0);
-		
-		tileTextures = new ArrayList<ArrayList<BufferedImage>>();
-		
-		for(int i = 0; i < this.tile.map.size(); i++) {
-			tileTextures.add(new ArrayList<BufferedImage>());
-			for(int j = 0; j < this.tile.map.get(0).size(); j++) {
-				
-				int tileVal = tile.map.get(i).get(j);
-				
-				if(tileVal == 1) {
-					tileTextures.get(i).add(textures.get(defaultTexture));
-				}
-				else {
-					tileTextures.get(i).add(new BufferedImage(32, 32, BufferedImage.TYPE_INT_ARGB));
-				}
-				
-			}
-		}	
+		this.setTile(0);
 	}
 	
 	public void setTile(int which) {
@@ -152,12 +134,14 @@ public class TileTextureEditor extends State {
 				
 				int tileVal = tile.map.get(i).get(j);
 				
-				if(tileVal == 1) {
-					tileTextures.get(i).add(textures.get(defaultTexture));
-				}
-				else {
-					tileTextures.get(i).add(new BufferedImage(32, 32, BufferedImage.TYPE_INT_ARGB));
-				}
+//				if(tileVal == 1) {
+//					tileTextures.get(i).add(textures.get(defaultTexture));
+//				}
+//				else {
+//					tileTextures.get(i).add(new BufferedImage(32, 32, BufferedImage.TYPE_INT_ARGB));
+//				}
+				
+				tileTextures.get(i).add(new BufferedImage(32, 32, BufferedImage.TYPE_INT_ARGB));
 				
 			}
 		}	
@@ -197,6 +181,8 @@ public class TileTextureEditor extends State {
 		BufferedImage saveImg = new BufferedImage(this.tile.width * this.tile.gridTileSize, this.tile.height * this.tile.gridTileSize, BufferedImage.TYPE_INT_ARGB);
 		
 		Graphics gImg = saveImg.getGraphics();
+		
+		tile.draw(gImg, 0, 0);
 		
 		for(int i = 0; i < tileTextures.size(); i++) {
 			for(int j = 0; j < tileTextures.get(0).size(); j++) {
@@ -338,6 +324,8 @@ public class TileTextureEditor extends State {
 		tile.drawGrid(g, this.offset.x, this.offset.y, true);
 		
 		if(drawTextures) {
+			tile.draw(g, this.offset.x, this.offset.y);
+			
 			for (int i = 0; i < this.tile.map.size(); i++) {
 				for (int j = 0; j < this.tile.map.get(i).size(); j++) {
 					int x = (int) offset.x + j * this.tile.gridTileSize;

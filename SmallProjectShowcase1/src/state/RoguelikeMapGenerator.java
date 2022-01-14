@@ -216,13 +216,18 @@ public class RoguelikeMapGenerator extends State {
 	int minConnectorLength = 5;
 	int maxConnectorLength = 10;
 	
+	ArrayList<ArrayList<Integer>> tileOccupied;
+	
 	public void generateMap() {
 		this.mapTexture = new BufferedImage(mapSize * tileSize, mapSize * tileSize, BufferedImage.TYPE_INT_ARGB);
 		this.map = new ArrayList<ArrayList<Integer>>();
+		this.tileOccupied = new ArrayList<ArrayList<Integer>>();
 		for(int i = 0; i < mapSize; i++) {
 			this.map.add(new ArrayList<Integer>());
+			this.tileOccupied.add(new ArrayList<Integer>());
 			for(int j = 0; j < mapSize; j++) {
 				this.map.get(map.size() - 1).add(0);
+				this.tileOccupied.get(tileOccupied.size() - 1).add(0);
 			}
 		}
 		
@@ -240,6 +245,7 @@ public class RoguelikeMapGenerator extends State {
 			for(int j = 0; j < startTile.width; j++) {
 				int next = startTile.map.get(i).get(j);
 				this.map.get(i + startY).set(j + startX, next);
+				this.tileOccupied.get(i + startY).set(j + startX, 1);
 			}
 		}
 		
@@ -296,8 +302,6 @@ public class RoguelikeMapGenerator extends State {
 		
 		int[] nextExit = exits.poll();
 		Vector nextExitDir = exitDir.poll();
-		int ox = nextExit[0];
-		int oy = nextExit[1];
 		
 		//try every tile in random order, until you get one
 		
@@ -315,117 +319,166 @@ public class RoguelikeMapGenerator extends State {
 					continue;
 				}
 				
-				int ex = e[0];
-				int ey = e[1];
+				//the exits are compatible
+				//place the tile, and move it back if placement is invalid
 				
-				int minX = ox - ex;
-				int maxX = ox - ex + t.width;
-				int minY = oy - ey;
-				int maxY = oy - ey + t.height;
+				for(int con = minConnectorLength; con <= maxConnectorLength; con++) {
 				
-				if(minX < 0 || minY < 0 || maxX >= mapSize || maxY >= mapSize) {	//tile out of bounds
-					continue;
-				}
-				
-				//check whether exit placement is valid
-				boolean isValid = true;
-				
-				outer:
-				for(int i = 0; i < t.height; i++) {
-					for(int j = 0; j < t.width; j++) {
-						int x = j + ox - ex;
-						int y = i + oy - ey;
-						
-						int mapVal = map.get(y).get(x);
-						int tileVal = t.map.get(i).get(j);
-						
-						
-						if(tileVal == 2) {
-							if(mapVal != 2 && mapVal != 0) {
-								isValid = false;
-								break outer;
-							}
-						}
-						else if(tileVal == 0) {
-							//do nothing
-						}
-						else {
-							//we know the tile is a floor tile
-							//check this tile, and all adjacent tiles
+					int ox = nextExit[0] + (int) nextExitDir.x * con;	//origin x
+					int oy = nextExit[1] + (int) nextExitDir.y * con;
+					
+					int ex = e[0];
+					int ey = e[1];
+					
+					int minX = ox - ex;
+					int maxX = ox - ex + t.width;
+					int minY = oy - ey;
+					int maxY = oy - ey + t.height;
+					
+					if(minX < 0 || minY < 0 || maxX >= mapSize || maxY >= mapSize) {	//tile out of bounds
+						continue;
+					}
+					
+					//check whether exit placement is valid
+					//just check against bounding boxes
+					boolean isValid = true;
+					
+					outer:
+					for(int i = 0; i < t.height; i++) {
+						for(int j = 0; j < t.width; j++) {
+							int x = j + ox - ex;
+							int y = i + oy - ey;
 							
-							for(int k = 0; k < dx.length; k++) {
-								int nx = x + dx[k];
-								int ny = y + dy[k];
+							for(int k = 0; k < this.dx.length; k++) {
 								
-								if(ny < 0 || nx < 0 || ny >= map.size() || nx >= map.get(0).size()) {	//out of bounds
+								if(x + this.dx[k] < 0 || y + this.dy[k] < 0 || x + this.dx[k] >= this.mapSize || y + this.dy[k] >= this.mapSize) {
 									continue;
 								}
 								
-								if(map.get(ny).get(nx) == 2 && t.map.get(i + dy[k]).get(j + dx[k]) == 2) {
-									continue;
-								}
-								
-								else if(map.get(ny).get(nx) != 0) {
+								if(this.tileOccupied.get(y + this.dy[k]).get(x + this.dx[k]) == 1) {
 									isValid = false;
 									break outer;
 								}
 							}
+							
+							/*
+							int mapVal = map.get(y).get(x);
+							int tileVal = t.map.get(i).get(j);
+							
+							
+							if(tileVal == 2) {
+								if(mapVal != 2 && mapVal != 0) {
+									isValid = false;
+									break outer;
+								}
+							}
+							else if(tileVal == 0) {
+								//do nothing
+							}
+							else {
+								//we know the tile is a floor tile
+								//check this tile, and all adjacent tiles
+								
+								for(int k = 0; k < dx.length; k++) {
+									int nx = x + dx[k];
+									int ny = y + dy[k];
+									
+									if(ny < 0 || nx < 0 || ny >= map.size() || nx >= map.get(0).size() ||
+											i + dy[k] < 0 || j + dx[k] < 0 || i + dy[k] >= t.map.get(0).size() || j + dx[k] >= t.map.get(0).size()) {	//out of bounds
+										
+										continue;
+									}
+									
+									if(map.get(ny).get(nx) == 2 && t.map.get(i + dy[k]).get(j + dx[k]) == 2) {
+										continue;
+									}
+									
+									else if(map.get(ny).get(nx) != 0) {
+										isValid = false;
+										break outer;
+									}
+								}
+							}
+							*/
 						}
 					}
-				}
 				
-				if(!isValid) {
-					continue;
-				}
-				
-				for(int i = 0; i < t.height; i++) {
-					for(int j = 0; j < t.width; j++) {
-						int x = j + ox - ex;
-						int y = i + oy - ey;
-						
-						int mapVal = map.get(y).get(x);
-						int tileVal = t.map.get(i).get(j);
-						
-						if(tileVal != 0 && tileVal != 2) {
-							map.get(y).set(x, t.map.get(i).get(j));
-						}	
+					if(!isValid) {
+						continue;
 					}
-				}
-				
-				//set current exit
-				map.get(oy).set(ox, 2);
-				
-				//add exits to stack
-				for(int[] exit : t.exits) {
-					exits.add(new int[] {exit[0] + minX, exit[1] + minY});
 					
-					Vector eDir = new Vector(0, 0);
-					for(int i = 0; i < 4; i++) {
-						int x = exit[0] + dx[i];
-						int y = exit[1] + dy[i];
-						
-						if(
-								x < 0 || x >= t.map.get(0).size() || 
-								y < 0 || y >= t.map.size()) {
-							eDir = new Vector(dx[i], dy[i]);
-							break;
-						}
-						else if(t.map.get(exit[1] + dy[i]).get(exit[0] + dx[i]) == 1) {
-							eDir = new Vector(-dx[i], -dy[i]);
-							break;
+					for(int i = 0; i < t.height; i++) {
+						for(int j = 0; j < t.width; j++) {
+							int x = j + ox - ex;
+							int y = i + oy - ey;
+							
+							int mapVal = map.get(y).get(x);
+							int tileVal = t.map.get(i).get(j);
+							
+							if(t.map.get(i).get(j) != 2) {
+								map.get(y).set(x, t.map.get(i).get(j));
+							}
+							
+							this.tileOccupied.get(y).set(x, 1);
 						}
 					}
-					//System.out.println(eDir);
-					exitDir.add(eDir);
+					
+					//draw tile texture onto map
+					Graphics gMap = this.mapTexture.getGraphics();
+					gMap.drawImage(t.texture, minX * tileSize, minY * tileSize, null);
+					
+					//set current exit
+					map.get(oy).set(ox, 2);
+					map.get(nextExit[1]).set(nextExit[0], 2);
+					
+					//set pathway between the two
+					int px = nextExit[0] + (int) nextExitDir.x;
+					int py = nextExit[1] + (int) nextExitDir.y;
+					
+					//System.out.println("[" + ox + ", " + oy + "], [" + px + ", " + py + "]");
+					
+					while(px != ox || py != oy) {
+						map.get(py).set(px, 1);
+						
+						gMap.drawImage(tileSpritesheet.get(17), px * this.tileSize, py * this.tileSize, this.tileSize, this.tileSize, null);
+						
+						px += (int) nextExitDir.x;
+						py += (int) nextExitDir.y;
+					}
+					
+					gMap.drawImage(tileSpritesheet.get(17), ox * this.tileSize, oy * this.tileSize, this.tileSize, this.tileSize, null);
+					gMap.drawImage(tileSpritesheet.get(17), nextExit[0] * this.tileSize, nextExit[1] * this.tileSize, this.tileSize, this.tileSize, null);
+					
+					//add exits to stack
+					for(int[] exit : t.exits) {
+						exits.add(new int[] {exit[0] + minX, exit[1] + minY});
+						
+						Vector eDir = new Vector(0, 0);
+						for(int i = 0; i < 4; i++) {
+							int x = exit[0] + dx[i];
+							int y = exit[1] + dy[i];
+							
+							if(
+									x < 0 || x >= t.map.get(0).size() || 
+									y < 0 || y >= t.map.size()) {
+								eDir = new Vector(dx[i], dy[i]);
+								break;
+							}
+							else if(t.map.get(exit[1] + dy[i]).get(exit[0] + dx[i]) == 1) {
+								eDir = new Vector(-dx[i], -dy[i]);
+								break;
+							}
+						}
+						//System.out.println(eDir);
+						exitDir.add(eDir);
+					}
+					
+					
+					
+					//System.out.println(nextExitDir);
+					
+					return 1;
 				}
-				
-				//draw tile texture onto map
-				Graphics gMap = this.mapTexture.getGraphics();
-				gMap.drawImage(t.texture, minX * tileSize, minY * tileSize, null);
-				
-				//System.out.println(nextExitDir);
-				
-				return 1;
 			}
 
 		}
