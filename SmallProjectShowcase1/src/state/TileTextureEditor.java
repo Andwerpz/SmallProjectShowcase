@@ -42,6 +42,8 @@ public class TileTextureEditor extends State {
 	int selectedPath = 0;
 	static ArrayList<BufferedImage[]> paths = new ArrayList<BufferedImage[]>();
 	
+	static ArrayList<BufferedImage[]> floorTiles = new ArrayList<BufferedImage[]>();
+	
 	Vector offset = new Vector(0, 0);
 	
 	static ArrayList<BufferedImage> textures;
@@ -119,6 +121,7 @@ public class TileTextureEditor extends State {
 		im.addInput(new Button(10, 150, 50, 25, "<< Prev", "switchPathPrevBtn"));
 		im.addInput(new Button(60, 150, 50, 25, " Next >>", "switchPathNextBtn"));
 		im.addInput(new Button(10, 185, 100, 25, "Next Tile", "switchTileBtn"));
+		im.addInput(new Button(10, 220, 100, 25, "Tile Floor", "tileFloorBtn"));
 		
 		this.setTile(0);
 	}
@@ -151,10 +154,11 @@ public class TileTextureEditor extends State {
 		
 		textures = new ArrayList<BufferedImage>();
 		
-		textures.addAll(GraphicsTools.loadAnimation("/grass spritesheet 4.png", 16, 16));
+		//textures.addAll(GraphicsTools.loadAnimation("/grass spritesheet 4.png", 16, 16));
+		textures.addAll(GraphicsTools.loadAnimation("/tile floor.png", 16, 16));
 		
-		loadPaths();
-		
+		//loadPaths();
+		loadFloorTiles();
 	}
 	
 	public static void loadPaths() {
@@ -174,6 +178,69 @@ public class TileTextureEditor extends State {
 			}
 			
 			paths.add(nextPath);
+		}
+	}
+	
+	public static void loadFloorTiles() {
+		floorTiles = new ArrayList<BufferedImage[]>();
+		
+		String[] floorPaths = {
+				"/tile floor.png"
+		};
+		
+		for(String s : floorPaths) {
+			ArrayList<BufferedImage> imgs = GraphicsTools.loadAnimation(s, 16, 16);
+			
+			BufferedImage[] nextPath = new BufferedImage[6];
+			for(int i = 0; i < imgs.size(); i++) {
+				nextPath[i] = imgs.get(i);
+			}
+			
+			floorTiles.add(nextPath);
+		}
+	}
+	
+	public void tileFloor() {
+		
+		boolean[][] v = new boolean[this.tile.height][this.tile.width];
+		
+		for(int i = 0; i < this.tile.height; i++) {
+			for(int j = 0; j < this.tile.width; j++) {
+				if(this.tile.map.get(i).get(j) == 1 && !v[i][j]) {
+					boolean canPlaceLarge = true;
+					if(i + 1 == this.tile.height || j + 1 == this.tile.width) {
+						canPlaceLarge = false;
+					}
+					else if(
+							this.tile.map.get(i + 1).get(j) != 1 ||
+							this.tile.map.get(i + 1).get(j + 1) != 1 ||
+							this.tile.map.get(i).get(j + 1) != 1 ||
+							v[i + 1][j] ||
+							v[i + 1][j + 1] ||
+							v[i][j + 1]){
+						canPlaceLarge = false;
+					}
+					
+					if(canPlaceLarge && Math.random() > 0.95) {	//large 2x2 tile
+						v[i + 1][j] = true;
+						v[i + 1][j + 1] = true;
+						v[i][j + 1] = true;
+						v[i][j] = true;
+						this.tileTextures.get(i).set(j, floorTiles.get(0)[2]);
+						this.tileTextures.get(i).set(j + 1, floorTiles.get(0)[3]);
+						this.tileTextures.get(i + 1).set(j + 1, floorTiles.get(0)[4]);
+						this.tileTextures.get(i + 1).set(j, floorTiles.get(0)[5]);
+					}
+					else if(Math.random() > 0.8) {	//small 1/2 tiles
+						v[i][j] = true;
+						this.tileTextures.get(i).set(j, floorTiles.get(0)[0]);
+					}
+					else {	//regular tile
+						v[i][j] = true;
+						this.tileTextures.get(i).set(j, floorTiles.get(0)[1]);
+					}
+				}
+			}
 		}
 	}
 	
@@ -410,6 +477,10 @@ public class TileTextureEditor extends State {
 				selectedTile = 0;
 			}
 			this.setTile(selectedTile);
+			break;
+			
+		case "tileFloorBtn":
+			this.tileFloor();
 			break;
 			
 		}

@@ -111,7 +111,7 @@ public class RoguelikeMapGenerator extends State {
 		super(gsm);
 		
 		loadWallTextures();
-		tileSpritesheet = GraphicsTools.loadAnimation("/tileset spritesheet 3.png", 16, 16);
+		tileSpritesheet = GraphicsTools.loadAnimation("/tile floor.png", 16, 16);
 		
 		im = new InputManager();
 		
@@ -146,14 +146,14 @@ public class RoguelikeMapGenerator extends State {
 		
 		walls = new ArrayList<BufferedImage[]>();
 		
-		String[] paths = {"/stone wall.png"};
+		String[] paths = {"/stone wall 9.png"};
 		
 		for(String s : paths) {
 			ArrayList<BufferedImage> animation = GraphicsTools.loadAnimation(s, 16, 16);
 			
 			BufferedImage[] next = new BufferedImage[17];
 			
-			for(int i = 0; i < animation.size(); i++) {
+			for(int i = 0; i < 17; i++) {
 				next[i] = animation.get(i);
 			}
 			
@@ -206,6 +206,10 @@ public class RoguelikeMapGenerator extends State {
 			}
 		}
 		*/
+		
+		//background color
+		g.setColor(Color.BLACK);
+		g.fillRect(0, 0, MainPanel.WIDTH, MainPanel.HEIGHT);
 		
 		g.drawImage(mapTexture, (int) offset.x, (int) offset.y, tileSize * mapSize, tileSize * mapSize, null);
 		g.drawImage(wallTexture, (int) offset.x, (int) offset.y, tileSize * mapSize, tileSize * mapSize, null);
@@ -440,14 +444,14 @@ public class RoguelikeMapGenerator extends State {
 					while(px != ox || py != oy) {
 						map.get(py).set(px, 1);
 						
-						gMap.drawImage(tileSpritesheet.get(17), px * this.tileSize, py * this.tileSize, this.tileSize, this.tileSize, null);
+						gMap.drawImage(tileSpritesheet.get(1), px * this.tileSize, py * this.tileSize, this.tileSize, this.tileSize, null);
 						
 						px += (int) nextExitDir.x;
 						py += (int) nextExitDir.y;
 					}
 					
-					gMap.drawImage(tileSpritesheet.get(17), ox * this.tileSize, oy * this.tileSize, this.tileSize, this.tileSize, null);
-					gMap.drawImage(tileSpritesheet.get(17), nextExit[0] * this.tileSize, nextExit[1] * this.tileSize, this.tileSize, this.tileSize, null);
+					gMap.drawImage(tileSpritesheet.get(1), ox * this.tileSize, oy * this.tileSize, this.tileSize, this.tileSize, null);
+					gMap.drawImage(tileSpritesheet.get(1), nextExit[0] * this.tileSize, nextExit[1] * this.tileSize, this.tileSize, this.tileSize, null);
 					
 					//add exits to stack
 					for(int[] exit : t.exits) {
@@ -485,8 +489,18 @@ public class RoguelikeMapGenerator extends State {
 		return -1;
 	}
 	
-	//includes out of tile textures
+	//includes out of tile textures - now it's just a black background
 	public void processWallTextures() {
+		
+		//change map to suit needs
+		for(int i = this.mapSize - 1; i > 0; i--) {
+			for(int j = 0; j < this.mapSize; j++) {
+				if(this.map.get(i - 1).get(j) != 0) {
+					this.map.get(i).set(j, 1);
+				}
+			}
+		}
+		
 		this.wallTexture = new BufferedImage(mapSize * tileSize, mapSize * tileSize, BufferedImage.TYPE_INT_ARGB);
 		Graphics gImg = this.wallTexture.getGraphics();
 		
@@ -516,7 +530,7 @@ public class RoguelikeMapGenerator extends State {
 				int y = (i - 0) * this.tileSize;
 				
 				if(foundLower) {
-					gImg.drawImage(wallTex[16], x, y, tileSize, tileSize, null);
+					//gImg.drawImage(wallTex[16], x, y, tileSize, tileSize, null);
 				}
 				
 				if(this.map.get(i).get(j) == 0 && this.map.get(i + 1).get(j) != 0) {
@@ -549,6 +563,22 @@ public class RoguelikeMapGenerator extends State {
 				}
 			}
 		}
+		
+		//change back map
+		for(int i = this.mapSize - 1; i > 0; i--) {
+			for(int j = 0; j < this.mapSize; j++) {
+				if(i + 1 == this.mapSize) {
+					if(this.map.get(i).get(j) == 1) {
+						this.map.get(i).set(j, 0);
+					}
+				}
+				else {
+					if(this.map.get(i + 1).get(j) == 0) {
+						this.map.get(i).set(j, 0);
+					}
+				}
+			}
+		}
 	}
 	
 	public BufferedImage setWallTile(BufferedImage[] wallTex, int row, int col) {
@@ -563,7 +593,7 @@ public class RoguelikeMapGenerator extends State {
 				continue;
 			}
 			
-			if(map.get(x).get(y) == 1) {
+			if(map.get(x).get(y) != 0) {
 				isLower[i] = true;
 			}
 		}
@@ -597,7 +627,9 @@ public class RoguelikeMapGenerator extends State {
 			return wallTex[this.keyToPath.get(key)];
 		}
 		
-		return tileSpritesheet.get(17);
+		//return tileSpritesheet.get(17);	//green grass
+		BufferedImage blackground = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
+		return blackground;
 		
 	}
 	
@@ -705,7 +737,7 @@ public class RoguelikeMapGenerator extends State {
 				+ "0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 \r\n"
 				+ "0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 \r\n"
 				+ "0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 \r\n"
-				+ "0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 \r\n"
+				+ "0 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 0 \r\n"
 				+ "0 1 1 1 1 1 0 0 1 1 1 1 0 0 0 0 0 0 0 0 1 1 1 1 0 0 1 1 1 1 1 0 \r\n"
 				+ "0 1 1 1 1 1 0 0 1 1 1 1 0 0 0 0 0 0 0 0 1 1 1 1 0 0 1 1 1 1 1 2 \r\n"
 				+ "0 1 1 1 1 1 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 1 1 1 1 1 0 \r\n"
