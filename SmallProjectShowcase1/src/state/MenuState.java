@@ -105,6 +105,7 @@ class MainScrollWindow extends ScrollWindow{
 			"Verlet Physics", 
 			"Cloth Physics",
 			"Roguelike Map Generator",
+			"Implicit Graph"
 			};
 
 	public MainScrollWindow(int x, int y, int width, int height, int realHeight) {
@@ -153,6 +154,10 @@ class MainScrollWindow extends ScrollWindow{
 				
 			case "Roguelike Map Generator":
 				MainPanel.gsm.states.push(new RoguelikeMapGenerator(MainPanel.gsm));
+				break;
+				
+			case "Implicit Graph":
+				MainPanel.gsm.states.push(new ImplicitGraph(MainPanel.gsm));
 				break;
 			}
 		}
