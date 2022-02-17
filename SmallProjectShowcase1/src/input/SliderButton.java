@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
@@ -103,6 +104,9 @@ public class SliderButton extends Input{
 	public void draw(Graphics g) {
 		
 		GraphicsTools.enableTextAntialiasing(g);
+		
+		Graphics2D g2 = (Graphics2D) g;
+		g2.setComposite(GraphicsTools.makeComposite(1));
 		
 		g.setColor(bodyColor);
 		g.fillRect(x, y, (int) head.getX() - this.x, height);

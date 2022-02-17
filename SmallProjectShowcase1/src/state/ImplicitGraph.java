@@ -10,25 +10,37 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 
+import input.InputManager;
+import input.SliderButton;
 import main.MainPanel;
 import util.GraphicsTools;
+import util.MathTools;
 import util.Vector;
 
 public class ImplicitGraph extends State{
-
-	double maxX = MainPanel.WIDTH / 40;
-	double minX = -MainPanel.WIDTH / 40;
-	double maxY = MainPanel.HEIGHT / 40;
-	double minY = -MainPanel.HEIGHT / 40;
 	
-	double squareSize = .3;	//real space size
+	InputManager im;
+
+	double maxX = MainPanel.WIDTH / 400;
+	double minX = -MainPanel.WIDTH / 400;
+	double maxY = MainPanel.HEIGHT / 400;
+	double minY = -MainPanel.HEIGHT / 400;
+	
+	double squareSize = 0.03;	//real space size
 	
 	boolean mousePressed = false;
 	
 	java.awt.Point prevMouse = new java.awt.Point(0, 0);
 	
+	double threshold = 0;
+	
 	public ImplicitGraph(StateManager gsm) {
 		super(gsm);
+		
+		im = new InputManager();
+		
+		im.addInput(new SliderButton(25, 25, 100, 10, 0, 100, "Threshold", "threshold"));
+		im.setVal("threshold", 50);
 	}
 
 	@Override
@@ -39,6 +51,9 @@ public class ImplicitGraph extends State{
 
 	@Override
 	public void tick(Point mouse2) {
+		im.tick(mouse2);
+		this.threshold = im.getVal("threshold");
+		
 		//real dx and dy
 		double dx = (double) (mouse2.x - prevMouse.x) * ((maxX - minX) / (double) MainPanel.WIDTH);
 		double dy = (double) (mouse2.y - prevMouse.y) * ((maxY - minY) / (double) MainPanel.HEIGHT);
@@ -56,6 +71,8 @@ public class ImplicitGraph extends State{
 
 	@Override
 	public void draw(Graphics g) {
+		
+		//neuralNetFunc(1, 1);
 		
 		double screenXSquareSize = (MainPanel.WIDTH / (maxX - minX)) * squareSize;
 		double screenYSquareSize = (MainPanel.HEIGHT / (maxY - minY)) * squareSize;
@@ -101,10 +118,10 @@ public class ImplicitGraph extends State{
 				double val = y1Real * Math.sin(x1Real) + x1Real * Math.cos(y1Real);
 				
 				boolean[] code = new boolean[4];
-				code[0] = testFunc(y1Real, x1Real);
-				code[1] = testFunc(y1Real, x2Real);
-				code[2] = testFunc(y2Real, x2Real);
-				code[3] = testFunc(y2Real, x1Real);
+				code[0] = neuralNetFunc(y1Real, x1Real);
+				code[1] = neuralNetFunc(y1Real, x2Real);
+				code[2] = neuralNetFunc(y2Real, x2Real);
+				code[3] = neuralNetFunc(y2Real, x1Real);
 				
 				drawSquare(g, code, (int) x1Screen, (int) y1Screen, (int) x2Screen, (int) y2Screen);
 				
@@ -118,6 +135,28 @@ public class ImplicitGraph extends State{
 				
 			}
 		}
+		
+		im.draw(g);
+	}
+	
+	//returns true if first output node is greater than second
+	public boolean neuralNetFunc(double x, double y) {
+		double xInput = x;
+		double yInput = y;
+		
+		double ans1 = xInput * 4.23 + yInput * -9.27 + -3.77;
+		double ans2 = xInput * -6.60 + yInput * 0.7 + 5.19;
+		double ans3 = xInput * 3.53 + yInput * 4.99 + -13.10;
+		
+		ans1 = MathTools.sigmoid(ans1);
+		ans2 = MathTools.sigmoid(ans2);
+		ans3 = MathTools.sigmoid(ans3);
+		
+		double ans = ans1 * 13.07 + ans2 * 12.76 + ans3 * 13.88 - 9;
+		
+		ans = MathTools.sigmoid(ans);
+		
+		return ans > threshold / 100d;
 	}
 	
 	public boolean testFunc(double x, double y) {
@@ -258,8 +297,7 @@ public class ImplicitGraph extends State{
 
 	@Override
 	public void mouseClicked(MouseEvent arg0) {
-		// TODO Auto-generated method stub
-		
+		im.mouseClicked(arg0);
 	}
 
 	@Override
@@ -276,11 +314,13 @@ public class ImplicitGraph extends State{
 
 	@Override
 	public void mousePressed(MouseEvent arg0) {
+		im.mousePressed(arg0);
 		mousePressed = true;
 	}
 
 	@Override
 	public void mouseReleased(MouseEvent arg0) {
+		im.mouseReleased(arg0);
 		mousePressed = false;
 	}
 
