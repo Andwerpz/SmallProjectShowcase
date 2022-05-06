@@ -106,7 +106,8 @@ class MainScrollWindow extends ScrollWindow{
 			"Cloth Physics",
 			"Roguelike Map Generator",
 			"Implicit Graph",
-			"HexToImg"
+			"HexToImg",
+			"Kernel Convolution"
 			};
 
 	public MainScrollWindow(int x, int y, int width, int height, int realHeight) {
@@ -163,6 +164,10 @@ class MainScrollWindow extends ScrollWindow{
 				
 			case "HexToImg":
 				MainPanel.gsm.states.push(new HexToImg(MainPanel.gsm));
+				break;
+				
+			case "Kernel Convolution":
+				MainPanel.gsm.states.push(new KernelConvolution(MainPanel.gsm));
 				break;
 			}
 		}
