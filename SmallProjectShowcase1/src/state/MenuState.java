@@ -107,7 +107,8 @@ class MainScrollWindow extends ScrollWindow{
 			"Roguelike Map Generator",
 			"Implicit Graph",
 			"HexToImg",
-			"Kernel Convolution"
+			"Kernel Convolution",
+			"TSP Genetic Algorithm"
 			};
 
 	public MainScrollWindow(int x, int y, int width, int height, int realHeight) {
@@ -168,6 +169,10 @@ class MainScrollWindow extends ScrollWindow{
 				
 			case "Kernel Convolution":
 				MainPanel.gsm.states.push(new KernelConvolution(MainPanel.gsm));
+				break;
+				
+			case "TSP Genetic Algorithm":
+				MainPanel.gsm.states.push(new TSPGeneticAlgorithm(MainPanel.gsm));
 				break;
 			}
 		}
