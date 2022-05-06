@@ -36,6 +36,7 @@ public class HexToImg extends State {
 		this.im = new InputManager();
 		this.im.addInput(new SliderButton(10, MainPanel.HEIGHT - 100, 300, 10, 1, 250, "Width", "slider_width"));
 		this.im.addInput(new SliderButton(10, MainPanel.HEIGHT - 50, 300, 10, 0, 100, "Skip", "slider_skip"));
+		//barken
 	}
 	
 	public static int[] loadText() {

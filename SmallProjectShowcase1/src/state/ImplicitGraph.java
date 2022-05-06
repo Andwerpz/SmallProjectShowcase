@@ -118,10 +118,10 @@ public class ImplicitGraph extends State{
 				double val = y1Real * Math.sin(x1Real) + x1Real * Math.cos(y1Real);
 				
 				boolean[] code = new boolean[4];
-				code[0] = neuralNetFunc(y1Real, x1Real);
-				code[1] = neuralNetFunc(y1Real, x2Real);
-				code[2] = neuralNetFunc(y2Real, x2Real);
-				code[3] = neuralNetFunc(y2Real, x1Real);
+				code[0] = testFunc(y1Real, x1Real);
+				code[1] = testFunc(y1Real, x2Real);
+				code[2] = testFunc(y2Real, x2Real);
+				code[3] = testFunc(y2Real, x1Real);
 				
 				drawSquare(g, code, (int) x1Screen, (int) y1Screen, (int) x2Screen, (int) y2Screen);
 				

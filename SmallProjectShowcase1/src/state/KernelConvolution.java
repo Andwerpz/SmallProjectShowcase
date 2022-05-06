@@ -90,11 +90,11 @@ public class KernelConvolution extends State{
 					}
 				}
 				
-				System.out.println("color channels loaded");
+				//System.out.println("color channels loaded");
 				
 				for(int k = 0; k < 3; k++) {
 					int[][] convChannel = matrixCompMult(kernel, channels[k]);
-					System.out.println((k + 1) + " convolution done");
+					//System.out.println((k + 1) + " convolution done");
 					
 					for(int r = 0; r < kernel.length; r++) {
 						for(int c = 0; c < kernel[0].length; c++) {
@@ -107,7 +107,7 @@ public class KernelConvolution extends State{
 					rgb[k] = Math.max(0, rgb[k]);
 				}
 				
-				System.out.println("convolution done");
+				//System.out.println("convolution done");
 				
 				int rgbInt = ((int) rgb[0] << 16) + ((int) rgb[1] << 8) + (int) rgb[2];
 				
@@ -137,11 +137,11 @@ public class KernelConvolution extends State{
 					}
 				}
 				
-				System.out.println("color channels loaded");
+				//System.out.println("color channels loaded");
 				
 				for(int k = 0; k < 3; k++) {
 					int[][] convChannel = matrixCompMult(sobelHoriz, channels[k]);
-					System.out.println((k + 1) + " convolution done");
+					//System.out.println((k + 1) + " convolution done");
 					
 					for(int r = 0; r < sobelHoriz.length; r++) {
 						for(int c = 0; c < sobelHoriz[0].length; c++) {
@@ -152,7 +152,7 @@ public class KernelConvolution extends State{
 				
 				for(int k = 0; k < 3; k++) {
 					int[][] convChannel = matrixCompMult(sobelVert, channels[k]);
-					System.out.println((k + 1) + " convolution done");
+					//System.out.println((k + 1) + " convolution done");
 					
 					for(int r = 0; r < sobelVert.length; r++) {
 						for(int c = 0; c < sobelVert[0].length; c++) {
@@ -168,7 +168,7 @@ public class KernelConvolution extends State{
 					rgb[k] = Math.max(0, rgb[k]);
 				}
 				
-				System.out.println("convolution done");
+				//System.out.println("convolution done");
 				
 				int rgbInt = ((int) rgb[0] << 16) + ((int) rgb[1] << 8) + (int) rgb[2];
 				
