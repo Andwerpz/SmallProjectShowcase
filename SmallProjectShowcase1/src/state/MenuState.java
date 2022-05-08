@@ -108,7 +108,8 @@ class MainScrollWindow extends ScrollWindow{
 			"Implicit Graph",
 			"HexToImg",
 			"Kernel Convolution",
-			"TSP Genetic Algorithm"
+			"TSP Genetic Algorithm",
+			"Tic Tac Toe Q Learning"
 			};
 
 	public MainScrollWindow(int x, int y, int width, int height, int realHeight) {
@@ -173,6 +174,10 @@ class MainScrollWindow extends ScrollWindow{
 				
 			case "TSP Genetic Algorithm":
 				MainPanel.gsm.states.push(new TSPGeneticAlgorithm(MainPanel.gsm));
+				break;
+				
+			case "Tic Tac Toe Q Learning":
+				MainPanel.gsm.states.push(new TicTacToeQLearning(MainPanel.gsm));
 				break;
 			}
 		}
