@@ -91,6 +91,25 @@ public class MathTools {
 		
 	}
 	
+	// takes in two line segments, and returns a vector pointing to where they
+	// intersect, null otherwise
+	static Vector line_lineCollision(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4) {
+		// calculate the distance to intersection point
+		double uA = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1));
+		double uB = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1));
+
+		// if uA and uB are between 0-1, lines are colliding
+		if (uA >= 0 && uA <= 1 && uB >= 0 && uB <= 1) {
+
+			//calculate the intersection point
+			double intersectionX = x1 + (uA * (x2 - x1));
+			double intersectionY = y1 + (uA * (y2 - y1));
+
+			return new Vector(intersectionX, intersectionY);
+		}
+		return null;
+	}
+	
 	//takes in a line, lineP + lineVec, and two points, and return if the two points are on the same side of the line
 	
 	public static boolean pointOnSameSideOfLine(Point lineP, Vector lineVec, Point a, Point b) {
