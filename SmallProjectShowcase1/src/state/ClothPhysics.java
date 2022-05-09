@@ -322,6 +322,14 @@ public class ClothPhysics extends State {
 			cloth[cloth.length - 1][0].pinned = false;
 			cloth[cloth.length - 1][cloth[0].length - 1].pinned = false;
 		}
+		
+		else if(arg0.getKeyCode() == KeyEvent.VK_Z) {
+			this.drawSprings = !drawSprings;
+		}
+		
+		else if(arg0.getKeyCode() == KeyEvent.VK_X) {
+			this.drawParticles = !drawParticles;
+		}
 	}
 
 	@Override

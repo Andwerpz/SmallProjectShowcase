@@ -10,6 +10,7 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 
@@ -42,8 +43,10 @@ public class HexToImg extends State {
 	public static int[] loadText() {
 		ArrayList<Integer> a = new ArrayList<>();
 		try {
-			//BufferedReader fin = new BufferedReader(new FileReader("/testbmp.txt"));
-			BufferedReader fin = new BufferedReader(new FileReader("C:\\-=+GAME+=-\\-- Github --\\SmallProjectShowcase\\SmallProjectShowcase1\\res\\testbmp.txt"));
+			
+			InputStream is = HexToImg.class.getResourceAsStream("/testbmp.txt");
+			BufferedReader fin = new BufferedReader(new InputStreamReader(is));
+			//BufferedReader fin = new BufferedReader(new FileReader("C:\\-=+GAME+=-\\-- Github --\\SmallProjectShowcase\\SmallProjectShowcase1\\res\\testbmp.txt"));
 			
 			//read in one line
 			char[] line = fin.readLine().toCharArray();
@@ -133,6 +136,9 @@ public class HexToImg extends State {
 	@Override
 	public void keyPressed(KeyEvent arg0) {
 		im.keyPressed(arg0);
+		if(arg0.getKeyCode() == KeyEvent.VK_ESCAPE) {
+			this.exit();
+		}
 	}
 
 	@Override

@@ -279,8 +279,9 @@ public class ImplicitGraph extends State{
 
 	@Override
 	public void keyPressed(KeyEvent arg0) {
-		// TODO Auto-generated method stub
-		
+		if(arg0.getKeyCode() == KeyEvent.VK_ESCAPE) {
+			this.exit();
+		}
 	}
 
 	@Override
