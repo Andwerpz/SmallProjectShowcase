@@ -56,6 +56,15 @@ public class MathTools {
 		return Math.max(0, x);
 	}
 	
+	//inv sigmoid
+	public static double logit(double x) {
+		return Math.log(x / (1d - x));
+	}
+
+	public static double reluDerivative(double x) {
+		return x <= 0? 0 : 1;
+	}
+	
 	// -------------- Linear Algebra -----------
 	
 	public static double dotProduct(Vector a, Vector b) {
