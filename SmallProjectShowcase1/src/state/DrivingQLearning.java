@@ -58,7 +58,7 @@ public class DrivingQLearning extends State {
 		im = new InputManager();
 		im.addInput(new SliderButton(10, 80, 125, 10, 0, 100, "Exploit Chance", "slider_btn_exploit_chance"));
 		im.setVal("slider_btn_exploit_chance", 10);
-		im.addInput(new ToggleButton(10, 110, 100, 25, "Toggle Test", "toggle_btn_test"));
+		im.addInput(new ToggleButton(10, 100, 100, 25, "Toggle Test", "toggle_btn_test"));
 	}
 
 	@Override
@@ -108,12 +108,12 @@ public class DrivingQLearning extends State {
 		}
 
 		// draw goals
-		g.setColor(Color.GREEN);
-		for(ArrayList<double[]> c : goals) {
-			for (double[] d : c) {
-				g.drawLine((int) d[0], (int) d[1], (int) d[2], (int) d[3]);
-			}
-		}
+//		g.setColor(Color.GREEN);
+//		for(ArrayList<double[]> c : goals) {
+//			for (double[] d : c) {
+//				g.drawLine((int) d[0], (int) d[1], (int) d[2], (int) d[3]);
+//			}
+//		}
 		
 
 		// draw walls
@@ -342,6 +342,8 @@ public class DrivingQLearning extends State {
 
 		double size = 30;
 		double[][] corners = new double[][] { { -0.4, -0.2 }, { 0.4, -0.2 }, { 0.4, 0.2 }, { -0.4, 0.2 } };
+		
+		ArrayList<double[]> states;
 
 		public Car(double x, double y) {
 			this.pos = new Vector(x, y);
@@ -501,13 +503,11 @@ public class DrivingQLearning extends State {
 			
 			//get reward + estimated future reward * discount
 			double reward = 0;
-			if(this.goalCollision(goals)) {
-				reward ++;
-			}
+			reward += this.goalCollision(goals);
 			boolean wallCollision = false;
 			if(this.wallCollision(walls)) {
 				wallCollision = true;
-				reward --;
+				reward -= 100;
 			}
 			double maxEstimatedReward = Integer.MIN_VALUE;
 			for(double d : s2Output) {
@@ -636,12 +636,13 @@ public class DrivingQLearning extends State {
 		
 		//if you have last touched the ith goal, then you only need to check if you're touching the i + 1th or i - 1th goal. 
 		//returns true only if max cell has been incremented.
-		public boolean goalCollision(ArrayList<ArrayList<double[]>> goals) {
+		public int goalCollision(ArrayList<ArrayList<double[]>> goals) {
 			//previous goal
 			if(this.whichCell != 0) {
 				double[] nextGoal = goals.get(this.whichCell - 1).get(0);
 				if(this.lineCollision(nextGoal[0], nextGoal[1], nextGoal[2], nextGoal[3])) {
 					this.whichCell --;
+					return -100;
 				}
 			}
 			//next goal
@@ -651,11 +652,11 @@ public class DrivingQLearning extends State {
 					this.whichCell ++;
 					if(this.maxCell < this.whichCell) {
 						this.maxCell = this.whichCell;
-						return true;
+						return 1;
 					}
 				}
 			}
-			return false;
+			return 0;
 		}
 
 	}
