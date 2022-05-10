@@ -10,14 +10,14 @@ import java.util.Arrays;
 
 public class NeuralNetwork {
 	
-	public static final double LEARNING_RATE = 0.01;
+	public static final double LEARNING_RATE = 0.0001;
 	
 	//INPUT: 
 	//diff from goal
 	//normalized vector to goal
 	//velocity
 	//rotation vector
-	public static final int INPUT_SIZE = 8;
+	public static final int INPUT_SIZE = 35;
 	
 	//OUTPUT:
 	//accelerate and turn left
@@ -25,7 +25,9 @@ public class NeuralNetwork {
 	//accelerate
 	//turn left
 	//turn right
-	public static final int OUTPUT_SIZE = 5;
+	//idle
+	//reverse
+	public static final int OUTPUT_SIZE = 7;
 	
 	public ArrayList<Layer> layers;
 
@@ -36,9 +38,9 @@ public class NeuralNetwork {
 	public void generateNetwork() {
 		this.layers = new ArrayList<>();
 		
-		this.layers.add(new FCLayer(INPUT_SIZE, 8, FCLayer.ACTIVATION_TYPE_SIGMOID));
-		this.layers.add(new FCLayer(8, 8, FCLayer.ACTIVATION_TYPE_SIGMOID));
-		this.layers.add(new FCLayer(8, OUTPUT_SIZE, FCLayer.ACTIVATION_TYPE_SIGMOID));
+		this.layers.add(new FCLayer(INPUT_SIZE, 40, FCLayer.ACTIVATION_TYPE_SIGMOID));
+		this.layers.add(new FCLayer(40, 30, FCLayer.ACTIVATION_TYPE_SIGMOID));
+		this.layers.add(new FCLayer(30, OUTPUT_SIZE, FCLayer.ACTIVATION_TYPE_SIGMOID));
 		
 	}
 

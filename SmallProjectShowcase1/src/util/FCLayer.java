@@ -4,6 +4,7 @@ public class FCLayer extends Layer{
 	
 	public static final int ACTIVATION_TYPE_SIGMOID = 0;
 	public static final int ACTIVATION_TYPE_RELU = 1;
+	public static final int ACTIVATION_TYPE_LINEAR = 2;
 	
 	//ACTIVATION
 	int inputNodeAmt;
@@ -53,7 +54,11 @@ public class FCLayer extends Layer{
 				else if(this.activationType == FCLayer.ACTIVATION_TYPE_RELU) {
 					nextWeight = Math.random() * (Math.sqrt(2) / (double) this.inputNodeAmt);
 				}
+				else if(this.activationType == FCLayer.ACTIVATION_TYPE_LINEAR) {
+					nextWeight = 0;
+				}
 				this.weights[node][weight] = nextWeight;
+				//System.out.println(nextWeight);
 			}
 		}
 	}
@@ -128,7 +133,9 @@ public class FCLayer extends Layer{
 			//loop through output nodes
 			for(int weight = 0; weight < this.outputNodes.length; weight++) {
 				this.outputNodes[weight] += val * curWeights[weight];
+				//System.out.println(curWeights[weight]);
 			}
+			
 		}
 		
 		for(int node = 0; node < this.outputNodes.length; node++) {
@@ -140,8 +147,12 @@ public class FCLayer extends Layer{
 			else if(this.activationType == FCLayer.ACTIVATION_TYPE_RELU) {
 				this.outputNodes[node] = MathTools.relu(this.outputNodes[node]);
 			}
-			//System.out.print(this.outputNodes[node] + " ");
+			else if(this.activationType == FCLayer.ACTIVATION_TYPE_LINEAR) {
+				this.outputNodes[node] = this.outputNodes[node];
+			}
+			//System.out.println(this.outputNodes[node] + " ");
 		}
+		//System.out.println();
 	}
 	
 	//if this layer is the output layer
@@ -155,13 +166,17 @@ public class FCLayer extends Layer{
 		//calc output node derivatives
 		for(int node = 0; node < this.outputNodes.length; node++) {
 			//calc cost function derivative
-			if(this.outputNodeAmt == 1) {
-				this.outputNodeDerivatives[node] = (this.outputNodes[node] - ans[node]) * 2;
-			}
-			else {
-				this.outputNodeDerivatives[node] = (this.outputNodes[node] - ans[node]) * 2;
-			}
+			this.outputNodeDerivatives[node] = (this.outputNodes[node] - ans[node]) * 2;
 		}
+		
+//		System.out.println("---------");
+//		for(double[] d : this.weights) {
+//			for(double i : d) {
+//				System.out.println(i);
+//			}
+//			System.out.println();
+//		}
+//		System.out.println();
 		
 		this.calculateDerivatives();
 	}
@@ -196,7 +211,12 @@ public class FCLayer extends Layer{
 				//if the node output == 0, then the derivative = 0, else, derivative = 1.
 				this.outputNodeDerivatives[node] *= MathTools.reluDerivative(this.outputNodes[node]);
 			}
+			else if(this.activationType == FCLayer.ACTIVATION_TYPE_LINEAR) {
+				//derivative is always 1
+				this.outputNodeDerivatives[node] *= 1;
+			}
 		}
+		
 		
 		//calc weight and input node derivatives
 		for(int node = 0; node < this.inputNodes.length; node++) {

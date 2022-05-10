@@ -93,7 +93,7 @@ public class MathTools {
 	
 	// takes in two line segments, and returns a vector pointing to where they
 	// intersect, null otherwise
-	static Vector line_lineCollision(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4) {
+	public static Vector line_lineCollision(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4) {
 		// calculate the distance to intersection point
 		double uA = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1));
 		double uB = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1));
@@ -138,41 +138,6 @@ public class MathTools {
 		}
 		
 		return false;
-		
-	}
-	
-	//takes in a line and a line segment, and returns where they intersect, if they intersect.
-	//if they don't intersect, returns null
-	
-	public static Point lineLineSegmentIntersect(Point a, Point b, Point lineP, Vector lineVec) {
-		
-		//points: p, q
-		//vectors: r, s
-		//scalars: t, u 
-		//p + tr = q + us
-		//if p + r is the line segment and q + s is the line, only t must be bounded from 0 - 1.
-		//this means we only have to solve for t, and if t is between 0 and 1, then there is an intersection at p + tr. 
-		
-		//solving for t
-		//t = ((q - p) * s) / (r * s)
-		//remember: cross product of 2d vectors gives a scalar
-		Vector qp = new Vector(a, lineP);
-		Vector s = new Vector(lineVec);
-		Vector r = new Vector(a, b);
-		
-		double t = MathTools.crossProduct2D(qp, s) / MathTools.crossProduct2D(r, s);
-		
-		//intersection
-		if(t >= 0 && t <= 1) {
-			//calculate intersection point
-			r.multiply(t);
-			Point ans = new Point(a);
-			ans.addVector(r);
-			return ans;
-		}
-		
-		//no intersection
-		return null;
 		
 	}
 	

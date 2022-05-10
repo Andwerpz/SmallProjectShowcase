@@ -15,30 +15,50 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
+import input.InputManager;
+import input.SliderButton;
+import input.ToggleButton;
 import main.MainPanel;
 import util.GraphicsTools;
+import util.MathTools;
 import util.NeuralNetwork;
 import util.Vector;
 
 public class DrivingQLearning extends State {
+	
+	InputManager im;
 
-	NeuralNetwork valueFunction;
-
-	Car car;
+	ArrayList<Car> cars;
+	int numCars = 100;
+	int selectedCar = 0;
 
 	boolean accelerate = false;
 	boolean reverse = false;
 	boolean turnLeft = false;
 	boolean turnRight = false;
+	
+	boolean testing = false;
+	
+	Vector camera;
+	boolean mousePressed = false;
+	Vector prevMouse = new Vector(0, 0);
 
-	ArrayList<double[]> walls; // hit these and die
-	ArrayList<double[]> goals; // hit these and be rewarded
+	ArrayList<ArrayList<double[]>> walls; // hit these and die
+	ArrayList<ArrayList<double[]>> goals; // hit these and be rewarded
 
 	public DrivingQLearning(StateManager gsm) {
 		super(gsm);
-		valueFunction = new NeuralNetwork();
-		car = new Car(0, 0, 0);
+		cars = new ArrayList<>();
+		for(int i = 0; i < numCars; i++) {
+			cars.add(new Car(0, 0));
+		}
 		this.generateMap();
+		camera = new Vector(0, 0);
+		
+		im = new InputManager();
+		im.addInput(new SliderButton(10, 80, 125, 10, 0, 100, "Exploit Chance", "slider_btn_exploit_chance"));
+		im.setVal("slider_btn_exploit_chance", 10);
+		im.addInput(new ToggleButton(10, 110, 100, 25, "Toggle Test", "toggle_btn_test"));
 	}
 
 	@Override
@@ -49,35 +69,70 @@ public class DrivingQLearning extends State {
 
 	@Override
 	public void tick(Point mouse2) {
-		double accel = 0.5 + (accelerate ? 0.5 : 0) + (reverse ? -0.5 : 0);
-		double rot = 0.5 + (turnLeft ? -0.5 : 0) + (turnRight ? 0.5 : 0);
-		this.car.tick(accel, rot);
+		im.tick(mouse2);
+		exploitChance = (double) im.getVal("slider_btn_exploit_chance") / 100d;
+		testing = im.getToggled("toggle_btn_test");
+		
+		//train cars
+		for(Car c : cars) {
+			if(testing) {
+				c.test(walls, goals, null);
+			}
+			else {
+				c.train(walls, goals, null);
+			}
+		}
+		
+		//adjust camera
+		int dx = (int) (mouse2.x - prevMouse.x);
+		int dy = (int) (mouse2.y - prevMouse.y);
+		if(mousePressed) {
+			this.camera.subtractVector(new Vector(dx, dy));
+		}
+		prevMouse = new Vector(mouse2.x, mouse2.y);
 	}
 
 	@Override
 	public void draw(Graphics g) {
-		g.translate((int) (-this.car.pos.x + MainPanel.WIDTH / 2), (int) (-this.car.pos.y + MainPanel.HEIGHT / 2)); // real
-																													// space
-
+		
+		g.setColor(Color.BLACK);
 		GraphicsTools.enableAntialiasing(g);
-		this.car.draw(g);
+		
+		Car sCar = this.cars.get(this.selectedCar);
+		
+		// --CAMERA SPACE--
+		g.translate((int) (-camera.x + MainPanel.WIDTH / 2), (int) (-camera.y + MainPanel.HEIGHT / 2));
+
+		for(Car c : cars) {
+			c.draw(g);
+		}
 
 		// draw goals
 		g.setColor(Color.GREEN);
-		for (double[] d : goals) {
-			g.drawLine((int) d[0], (int) d[1], (int) d[2], (int) d[3]);
+		for(ArrayList<double[]> c : goals) {
+			for (double[] d : c) {
+				g.drawLine((int) d[0], (int) d[1], (int) d[2], (int) d[3]);
+			}
 		}
+		
 
 		// draw walls
 		g.setColor(Color.BLACK);
-		for (double[] d : walls) {
-			g.drawLine((int) d[0], (int) d[1], (int) d[2], (int) d[3]);
+		for(ArrayList<double[]> c : walls) {
+			for (double[] d : c) {
+				g.drawLine((int) d[0], (int) d[1], (int) d[2], (int) d[3]);
+			}
 		}
+		
+		
+		// --SCREEN SPACE--
+		g.translate((int) -(-camera.x + MainPanel.WIDTH / 2), (int) -(-camera.y + MainPanel.HEIGHT / 2));
 
-		g.translate((int) -(-this.car.pos.x + MainPanel.WIDTH / 2), (int) -(-this.car.pos.y + MainPanel.HEIGHT / 2)); // screen
-																														// space
-
-		g.drawString("Speed: " + this.car.vel.getMagnitude(), 10, 20);
+		g.drawString("Speed: " + sCar.vel.getMagnitude(), 10, 20);
+		g.drawString("Pos: " + sCar.pos, 10, 40);
+		g.drawString("Trials: " + trials, 10, 60);
+		
+		im.draw(g);
 	}
 
 	static int mapCellSize = 150;
@@ -85,23 +140,26 @@ public class DrivingQLearning extends State {
 
 	// map consists of square cells.
 	public void generateMap() {
-		this.walls = new ArrayList<double[]>();
-		this.goals = new ArrayList<double[]>();
+		this.walls = new ArrayList<>();
+		this.goals = new ArrayList<>();
 
 		// generate cell layout
 		HashSet<ArrayList<Integer>> s = new HashSet<>();
 		int curX = 0;
 		int curY = 0;
 		ArrayList<int[]> cells = new ArrayList<>();
-		int[][] dxy = new int[][] { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
+		int[][] dxy = new int[][] { { 1, 0 }, { -1, 0 }, { 0, -1 }, { 0, 1 } };
 		while (true) {
 			boolean isValid = true;
 			curX = 0;
 			curY = 0;
 			cells.clear();
 			s.clear();
+			dxy = new int[][] { { 1, 0 }, { -1, 0 }, { 0, -1 }, { 0, 1 } };
 			for (int i = 0; i < mapLength; i++) {
-				shuffleArray(dxy);
+				if(i != 0) {
+					shuffleArray(dxy);
+				}
 				isValid = false;
 				cells.add(new int[] { curX, curY });
 				s.add(new ArrayList<Integer>(Arrays.asList(curX, curY)));
@@ -137,7 +195,12 @@ public class DrivingQLearning extends State {
 			int cellY = cells.get(i)[1];
 			int x = cellX * mapCellSize;
 			int y = cellY * mapCellSize;
+			
+			this.walls.add(new ArrayList<>());
+			this.goals.add(new ArrayList<>());
+			
 			// if there is a cell on a given side, then that wall becomes a goal
+			dxyLoop:
 			for (int k = 0; k < 4; k++) {
 				int nextX = cellX + dxy[k][0];
 				int nextY = cellY + dxy[k][1];
@@ -151,6 +214,10 @@ public class DrivingQLearning extends State {
 
 					if (connectedCellX == nextX && connectedCellY == nextY) {
 						isWall = false;
+						
+						if(j == -1) {	//we're checking the previous cell. It already has a goal for us
+							continue dxyLoop;
+						}
 						break;
 					}
 				}
@@ -158,9 +225,9 @@ public class DrivingQLearning extends State {
 				double[] nextWall = new double[] { wallTemplate[k][0] + x, wallTemplate[k][1] + y,
 						wallTemplate[k][2] + x, wallTemplate[k][3] + y };
 				if (isWall) {
-					this.walls.add(nextWall);
+					this.walls.get(i).add(nextWall);
 				} else {
-					this.goals.add(nextWall);
+					this.goals.get(i).add(nextWall);
 				}
 			}
 
@@ -221,8 +288,7 @@ public class DrivingQLearning extends State {
 
 	@Override
 	public void mouseClicked(MouseEvent arg0) {
-		// TODO Auto-generated method stub
-
+		im.mouseClicked(arg0);
 	}
 
 	@Override
@@ -239,14 +305,14 @@ public class DrivingQLearning extends State {
 
 	@Override
 	public void mousePressed(MouseEvent arg0) {
-		// TODO Auto-generated method stub
-
+		im.mousePressed(arg0);
+		mousePressed = true;
 	}
 
 	@Override
 	public void mouseReleased(MouseEvent arg0) {
-		// TODO Auto-generated method stub
-
+		im.mouseReleased(arg0);
+		mousePressed = false;
 	}
 
 	@Override
@@ -254,6 +320,11 @@ public class DrivingQLearning extends State {
 		// TODO Auto-generated method stub
 
 	}
+	
+	static NeuralNetwork valueFunction = new NeuralNetwork();
+	static double exploitChance = 0.3;
+	static double discount = 0.3;
+	static int trials = 0;
 
 	class Car {
 
@@ -265,14 +336,27 @@ public class DrivingQLearning extends State {
 		double maxAccel = 0.4;
 		double minRot = Math.toRadians(-7);
 		double minAccel = -0.4;
+		
+		int whichCell;	//which cell is this car currently at
+		int maxCell;	//maximum cell visited by this car
 
 		double size = 30;
 		double[][] corners = new double[][] { { -0.4, -0.2 }, { 0.4, -0.2 }, { 0.4, 0.2 }, { -0.4, 0.2 } };
 
-		public Car(double x, double y, double rot) {
+		public Car(double x, double y) {
 			this.pos = new Vector(x, y);
 			this.vel = new Vector(0, 0);
-			this.rot = rot;
+			this.rot = 0;
+			this.whichCell = 0;
+			this.maxCell = 0;
+		}
+		
+		public void reset() {
+			this.pos = new Vector(0, 0);
+			this.vel = new Vector(0, 0);
+			this.rot = 0;
+			this.whichCell = 0;
+			this.maxCell = 0;
 		}
 
 		// advance one timestep
@@ -289,6 +373,217 @@ public class DrivingQLearning extends State {
 
 			// upd pos
 			this.pos.addVector(this.vel);
+		}
+		
+		public void test(ArrayList<ArrayList<double[]>> walls, ArrayList<ArrayList<double[]>> goals, Graphics g) {
+			//get q values
+			double[] s1Input = this.getInput(walls, g);
+			double[] s1Output = DrivingQLearning.valueFunction.forwardPropogate(s1Input);
+			
+			//determine move
+			double maxActivation = s1Output[0];
+			int s1Move = 0;
+			for(int i = 0; i < s1Output.length; i++) {
+				if(maxActivation < s1Output[i]) {
+					maxActivation = s1Output[i];
+					s1Move = i;
+				}
+			}
+			
+			//perform tick
+			switch(s1Move) {
+			case 0:
+				this.tick(1, 0);
+				break;
+				
+			case 1:
+				this.tick(1, 1);
+				break;
+				
+			case 2:
+				this.tick(1, 0.5);
+				break;
+				
+			case 3:
+				this.tick(0.5, 0);
+				break;
+				
+			case 4:
+				this.tick(0.5, 1);
+				break;
+				
+			case 5:
+				this.tick(0.5, 0.5);
+				break;
+				
+			case 6:
+				this.tick(0, 0.5);
+				break;
+			}
+			
+			//get reward + estimated future reward * discount
+			this.goalCollision(goals);
+			if(this.wallCollision(walls)) {
+				this.reset();
+			}
+		}
+		
+		//does a tick, and then trains the function network based off of reward gained. 
+		public void train(ArrayList<ArrayList<double[]>> walls, ArrayList<ArrayList<double[]>> goals, Graphics g) {
+			//get input for current state
+			double[] s1Input = this.getInput(walls, g);
+			
+//			for(double d : s1Input) {
+//				System.out.println(d);
+//			}
+//			System.out.println();
+			
+			double[] s1Output = DrivingQLearning.valueFunction.forwardPropogate(s1Input);
+			
+			//choose move
+			//OUTPUT:
+			//0: accelerate and turn left
+			//1: accelerate and turn right
+			//2: accelerate
+			//3: turn left
+			//4: turn right
+			//5: idle
+			//6: reverse
+			int s1Move = -1;
+			if(Math.random() < DrivingQLearning.exploitChance) {	//choose best move
+				double maxActivation = s1Output[0];
+				s1Move = 0;
+				for(int i = 0; i < s1Output.length; i++) {
+					if(maxActivation < s1Output[i]) {
+						maxActivation = s1Output[i];
+						s1Move = i;
+					}
+				}
+			}
+			else {	//random move
+				s1Move = (int) (Math.random() * s1Output.length);
+			}
+			
+			//perform tick
+			switch(s1Move) {
+			case 0:
+				this.tick(1, 0);
+				break;
+				
+			case 1:
+				this.tick(1, 1);
+				break;
+				
+			case 2:
+				this.tick(1, 0.5);
+				break;
+				
+			case 3:
+				this.tick(0.5, 0);
+				break;
+				
+			case 4:
+				this.tick(0.5, 1);
+				break;
+				
+			case 5:
+				this.tick(0.5, 0.5);
+				break;
+				
+			case 6:
+				this.tick(0, 0.5);
+				break;
+			}
+			
+			//get output of s2.
+			double[] s2Input = this.getInput(walls, g);
+			double[] s2Output = DrivingQLearning.valueFunction.forwardPropogate(s2Input);
+			
+			//get reward + estimated future reward * discount
+			double reward = 0;
+			if(this.goalCollision(goals)) {
+				reward ++;
+			}
+			boolean wallCollision = false;
+			if(this.wallCollision(walls)) {
+				wallCollision = true;
+				reward --;
+			}
+			double maxEstimatedReward = Integer.MIN_VALUE;
+			for(double d : s2Output) {
+				maxEstimatedReward = Math.max(d, maxEstimatedReward);
+			}
+			reward += maxEstimatedReward * DrivingQLearning.discount;
+			
+			//train value function
+			s1Output[s1Move] = reward;
+			DrivingQLearning.valueFunction.backPropogate(s1Input, s1Output);
+			
+			//reset if hit wall
+			if(wallCollision) {
+				this.reset();
+				DrivingQLearning.trials ++;
+			}
+		}
+		
+		int numSightLines = 31;
+		double viewConeRad = Math.toRadians(240);
+		
+		//what the car can see
+		public double[] getInput(ArrayList<ArrayList<double[]>> walls, Graphics g) {
+			ArrayList<Double> ans = new ArrayList<Double>();
+			
+			//add normalized rotation, and velocity vector
+			Vector normVel = new Vector(this.vel);
+			
+			Vector normRot = new Vector(0, 1);
+			normRot.rotateCounterClockwise(this.rot);
+			
+			ans.add(normVel.x);
+			ans.add(normVel.y);
+			ans.add(normRot.x);
+			ans.add(normRot.y);
+			
+			double curRot = -viewConeRad / 2d;
+			double increment = viewConeRad / (double) (numSightLines - 1);
+			for(int i = 0; i < numSightLines; i++) {
+				Vector sightVector = new Vector(1, 0);
+				sightVector.rotateCounterClockwise(curRot + this.rot);
+				sightVector.setMagnitude(100000);//a big number
+				sightVector.addVector(this.pos);
+				
+				double minDist = Integer.MAX_VALUE;
+				Vector minDistVector = null;
+				for(ArrayList<double[]> c : walls) {
+					for(double[] d : c) {
+						Vector intersect = MathTools.line_lineCollision(this.pos.x, this.pos.y, sightVector.x, sightVector.y, d[0], d[1], d[2], d[3]);
+						if(intersect != null) {
+							double dist = new Vector(this.pos, intersect).getMagnitude();
+							if(dist < minDist) {
+								minDist = dist;
+								minDistVector = intersect;
+							}
+						}
+					}
+				}
+				
+//				g.setColor(Color.GREEN);
+//				if(minDistVector != null) {
+//					g.drawLine((int) this.pos.x, (int) this.pos.y, (int) minDistVector.x, (int) minDistVector.y);
+//					g.drawRect((int) minDistVector.x - 2, (int) minDistVector.y - 2, 4, 4);
+//				}
+				
+				
+				ans.add(1d / minDist);
+				curRot += increment;
+			}
+			
+			double[] output = new double[ans.size()];
+			for(int i = 0; i < output.length; i++) {
+				output[i] = ans.get(i);
+			}
+			
+			return output;
 		}
 
 		public void draw(Graphics g) {
@@ -308,8 +603,59 @@ public class DrivingQLearning extends State {
 		}
 		
 		//checks if any part of the car collides with the line
-		public void lineCollision(double x1, double y1, double x2, double y2) {
+		public boolean lineCollision(double x1, double y1, double x2, double y2) {
+			double[][] corners = new double[4][2];
+			for (int i = 0; i < 4; i++) {
+				Vector c = new Vector(this.corners[i][0], this.corners[i][1]);
+				c.multiply(this.size);
+				c.rotateCounterClockwise(rot);
+				c.addVector(this.pos);
+				corners[i][0] = c.x;
+				corners[i][1] = c.y;
+			}
 			
+			for(int i = 0; i < 4; i++) {
+				if(MathTools.line_lineCollision(x1, y1, x2, y2, corners[i][0], corners[i][1], corners[(i + 1) % 4][0], corners[(i + 1) % 4][1]) != null) {
+					return true;
+				}
+			}
+			return false;
+		}
+		
+		//if you have last touched the ith goal, then you only need to check cells i, and i + 1. 
+		public boolean wallCollision(ArrayList<ArrayList<double[]>> walls) {
+			for(int i = this.whichCell; i < Math.min(walls.size(), this.whichCell + 2); i++) {
+				for(double[] d : walls.get(i)) {
+					if(this.lineCollision(d[0], d[1], d[2], d[3])) {
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+		
+		//if you have last touched the ith goal, then you only need to check if you're touching the i + 1th or i - 1th goal. 
+		//returns true only if max cell has been incremented.
+		public boolean goalCollision(ArrayList<ArrayList<double[]>> goals) {
+			//previous goal
+			if(this.whichCell != 0) {
+				double[] nextGoal = goals.get(this.whichCell - 1).get(0);
+				if(this.lineCollision(nextGoal[0], nextGoal[1], nextGoal[2], nextGoal[3])) {
+					this.whichCell --;
+				}
+			}
+			//next goal
+			if(this.whichCell != goals.size() - 1) {
+				double[] nextGoal = goals.get(this.whichCell + 1).get(0);
+				if(this.lineCollision(nextGoal[0], nextGoal[1], nextGoal[2], nextGoal[3])) {
+					this.whichCell ++;
+					if(this.maxCell < this.whichCell) {
+						this.maxCell = this.whichCell;
+						return true;
+					}
+				}
+			}
+			return false;
 		}
 
 	}

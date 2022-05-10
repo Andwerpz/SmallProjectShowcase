@@ -1,5 +1,7 @@
 package util;
 
+import java.awt.Point;
+
 public class Vector extends util.Point{
 
 	public Vector(double x, double y) {
@@ -19,7 +21,7 @@ public class Vector extends util.Point{
 	public Vector(util.Point a) {
 		super(a.x, a.y);
 	}
-	
+
 	public double getMagnitude() {
 		return Math.sqrt(this.x * this.x + this.y * this.y);
 	}
