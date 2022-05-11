@@ -19,7 +19,7 @@ import util.Point3D;
 public class Fireworks extends State {
 	
 	ArrayList<Particle> particles;
-	Point3D camera = new Point3D(0, 70, -50);
+	Vector3D camera = new Vector3D(0, 70, -50);
 	double xRot = 0.25;
 	double yRot = 0;
 	
@@ -236,13 +236,13 @@ public class Fireworks extends State {
 		int lifetime;
 		boolean explode;
 		Vector3D vel;
-		Point3D pos;
+		Vector3D pos;
 		Color color;
 		
 		public Particle(double x, double y, double z, double xVel, double yVel, double zVel, boolean explode, int lifetime, Color color) {
 			this.lifetime = lifetime;
 			this.explode = explode;
-			this.pos = new Point3D(x, y, z);
+			this.pos = new Vector3D(x, y, z);
 			this.vel = new Vector3D(xVel, yVel, zVel);
 			this.color = color;
 		}
@@ -255,7 +255,7 @@ public class Fireworks extends State {
 		}
 		
 		public void draw(Graphics g) {
-			Point3D drawn = MathTools.cameraTransform(pos, camera, xRot, yRot);
+			Vector3D drawn = MathTools.cameraTransform(pos, camera, xRot, yRot);
 			
 			double[] zBuffer = new double[] {0};
 			drawn = MathTools.projectPoint(drawn, zBuffer);

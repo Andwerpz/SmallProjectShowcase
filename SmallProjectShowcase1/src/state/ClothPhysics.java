@@ -23,7 +23,7 @@ public class ClothPhysics extends State {
 	Vector3D gravity = new Vector3D(0, -0.1, 0);
 	Vector3D light = new Vector3D(0, -1, 0);
 	
-	Point3D camera = new Point3D(0, 450, 0);
+	Vector3D camera = new Vector3D(0, 450, 0);
 	double xRot = 0.25;
 	double yRot = 0;
 	
@@ -218,9 +218,9 @@ public class ClothPhysics extends State {
 				double[] bz = {0};
 				double[] cz = {0};
 				
-				Point3D a = tri[0].projectPoint(az);
-				Point3D b = tri[1].projectPoint(bz);
-				Point3D c = tri[2].projectPoint(cz);
+				Vector3D a = tri[0].projectPoint(az);
+				Vector3D b = tri[1].projectPoint(bz);
+				Vector3D c = tri[2].projectPoint(cz);
 				
 				if(az[0] > 0 && bz[0] > 0 && cz[0] > 0) {
 					int[] x = {(int) a.x, (int) b.x, (int) c.x};
@@ -434,7 +434,7 @@ public class ClothPhysics extends State {
 		
 		public void draw(Graphics g) {
 			double[] zBuffer = {0};
-			Point3D drawn = this.projectPoint(zBuffer);
+			Vector3D drawn = this.projectPoint(zBuffer);
 			
 			if(zBuffer[0] > 0) {
 				g.fillOval(
@@ -446,8 +446,8 @@ public class ClothPhysics extends State {
 		}
 		
 		//takes point in 3D space, and projects it to the screen given camera info
-		public Point3D projectPoint(double[] zBuffer) {
-			Point3D drawn = MathTools.cameraTransform(pos, camera, xRot, yRot);
+		public Vector3D projectPoint(double[] zBuffer) {
+			Vector3D drawn = MathTools.cameraTransform(pos, camera, xRot, yRot);
 			
 			drawn = MathTools.projectPoint(drawn, zBuffer);
 			drawn = MathTools.scalePoint(drawn);
@@ -531,8 +531,8 @@ public class ClothPhysics extends State {
 			double[] az = {0};
 			double[] bz = {0};
 			
-			Point3D aDrawn = a.projectPoint(az);
-			Point3D bDrawn = b.projectPoint(bz);
+			Vector3D aDrawn = a.projectPoint(az);
+			Vector3D bDrawn = b.projectPoint(bz);
 			
 			if(az[0] > 0 && bz[0] > 0) {
 				g.drawLine(
@@ -547,12 +547,12 @@ public class ClothPhysics extends State {
 	
 	class Triangle {
 		
-		Point3D[] p;
+		Vector3D[] p;
 		double zBuffer = 0;
 		double brightness = 0;
 		
-		public Triangle(Point3D a, Point3D b, Point3D c) {
-			this.p = new Point3D[] {new Point3D(a), new Point3D(b), new Point3D(c)};
+		public Triangle(Vector3D a, Vector3D b, Vector3D c) {
+			this.p = new Vector3D[] {new Vector3D(a), new Vector3D(b), new Vector3D(c)};
 		}
 		
 		//only call if already projected

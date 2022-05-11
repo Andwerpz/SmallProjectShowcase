@@ -185,9 +185,9 @@ public class MathTools {
 	
 	//xRot and yRot in radians
 	//assumes default camera position is the +z axis
-	
-	public static Point3D cameraTransform(Point3D p, Point3D camera, double xRot, double yRot) {
-		Point3D ans = new Point3D(p);
+	//transforms into camera space, with the point relative to a camera facing down the z-axis. 
+	public static Vector3D cameraTransform(Vector3D p, Vector3D camera, double xRot, double yRot) {
+		Vector3D ans = new Vector3D(p);
 		ans.x -= camera.x;
 		ans.y -= camera.y;
 		ans.z -= camera.z;
@@ -199,12 +199,15 @@ public class MathTools {
 	}
 	
 	//used for scaling a point up to the window size after projection
-	
-	public static Point3D scalePoint(Point3D p) {
-		Point3D ans = new Point3D(p);
+	//also flips the y coordinate vertically about the center of the screen, or MainPanel.HEIGHT / 2 to correct for inverted y coordinate while
+	//drawing to screen. 
+	public static Vector3D scalePoint(Vector3D p) {
+		Vector3D ans = new Vector3D(p);
 		
 		ans.x = (p.x + 1d) * (0.5 * MainPanel.WIDTH);
 		ans.y = (p.y + 1d) * (0.5 * MainPanel.HEIGHT);
+		
+		ans.y = MainPanel.HEIGHT - ans.y;
 		
 		return ans;
 	}
@@ -232,7 +235,7 @@ public class MathTools {
 	//also handles texture coordinates with depth information
 	
 	//as of now, doesn't really work completely. This will either completely clip a triangle, or leave it untouched. I think it's due to the bad inputs
-	//yes, it was the bad inputs. When checking the normals to render, always check in real space.
+	//FIXED yes, it was the bad inputs. When checking the normals to render, always check in real space.
 	
 	public static ArrayList<Point3D[]> triangleClipAgainstPlane(Point3D planePoint, Vector3D planeNormal, Point3D[] inTri, 
 			Point[] inTex, ArrayList<Point[]> outTex, double[] inW, ArrayList<double[]> outW){
@@ -446,7 +449,7 @@ public class MathTools {
 	//assumes the camera is pointing in the +z direction
 	//stores the z buffer into the z dimension
 	
-	public static Point3D projectPoint(Point3D p, double[] wOut) {	
+	public static Vector3D projectPoint(Vector3D p, double[] wOut) {	
 		return multiplyMatrixVector(projectionMatrix, p, wOut);
 	}
 	
@@ -454,8 +457,8 @@ public class MathTools {
 	
 	//it's implied that the 4th element of the vector is 1
 	
-	public static Point3D multiplyMatrixVector(double[][] mat, Point3D p, double[] wOut) {
-		Point3D ans = new Point3D(0, 0, 0);
+	public static Vector3D multiplyMatrixVector(double[][] mat, Vector3D p, double[] wOut) {
+		Vector3D ans = new Vector3D(0, 0, 0);
 		
 		ans.x = p.x * mat[0][0] + p.y * mat[1][0] + p.z * mat[2][0] + mat[3][0];
 		ans.y = p.x * mat[0][1] + p.y * mat[1][1] + p.z * mat[2][1] + mat[3][1];

@@ -110,7 +110,8 @@ class MainScrollWindow extends ScrollWindow{
 			"Kernel Convolution",
 			"TSP Genetic Algorithm",
 			"Tic Tac Toe Q Learning",
-			"Driving Q Learning"
+			"Driving Q Learning",
+			"Synthwave Scroller"
 			};
 
 	public MainScrollWindow(int x, int y, int width, int height, int realHeight) {
@@ -183,6 +184,10 @@ class MainScrollWindow extends ScrollWindow{
 				
 			case "Driving Q Learning":
 				MainPanel.gsm.states.push(new DrivingQLearning(MainPanel.gsm));
+				break;
+				
+			case "Synthwave Scroller":
+				MainPanel.gsm.states.push(new SynthwaveScroller(MainPanel.gsm));
 				break;
 			}
 		}
