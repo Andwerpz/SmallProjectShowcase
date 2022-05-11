@@ -57,7 +57,7 @@ public class DrivingQLearning extends State {
 		
 		im = new InputManager();
 		im.addInput(new SliderButton(10, 80, 125, 10, 0, 100, "Exploit Chance", "slider_btn_exploit_chance"));
-		im.setVal("slider_btn_exploit_chance", 10);
+		im.setVal("slider_btn_exploit_chance", 0);
 		im.addInput(new ToggleButton(10, 100, 100, 25, "Toggle Test", "toggle_btn_test"));
 	}
 
@@ -73,13 +73,29 @@ public class DrivingQLearning extends State {
 		exploitChance = (double) im.getVal("slider_btn_exploit_chance") / 100d;
 		testing = im.getToggled("toggle_btn_test");
 		
+		boolean allDead = true;
+		
 		//train cars
 		for(Car c : cars) {
 			if(testing) {
 				c.test(walls, goals, null);
 			}
 			else {
+				if(!c.dead) {
+					allDead = false;
+				}
+				else {
+					continue;
+				}
 				c.train(walls, goals, null);
+			}
+		}
+		
+		//train the value func with the information provided, and reset cars
+		if(allDead) {
+			for(Car c : cars) {
+				c.experienceReplay();
+				c.reset();
 			}
 		}
 		
@@ -158,7 +174,7 @@ public class DrivingQLearning extends State {
 			dxy = new int[][] { { 1, 0 }, { -1, 0 }, { 0, -1 }, { 0, 1 } };
 			for (int i = 0; i < mapLength; i++) {
 				if(i != 0) {
-					shuffleArray(dxy);
+					//shuffleArray(dxy);
 				}
 				isValid = false;
 				cells.add(new int[] { curX, curY });
@@ -322,9 +338,14 @@ public class DrivingQLearning extends State {
 	}
 	
 	static NeuralNetwork valueFunction = new NeuralNetwork();
-	static double exploitChance = 0.3;
+	static double exploitChance = 0;
 	static double discount = 0.3;
+	static double learningRate = 0.001;
 	static int trials = 0;
+	
+	static double goalReward = 5;
+	static double timeReward = -0.1;
+	static double wallReward = -1;
 
 	class Car {
 
@@ -343,7 +364,12 @@ public class DrivingQLearning extends State {
 		double size = 30;
 		double[][] corners = new double[][] { { -0.4, -0.2 }, { 0.4, -0.2 }, { 0.4, 0.2 }, { -0.4, 0.2 } };
 		
-		ArrayList<double[]> states;
+		boolean dead = false;
+		
+		//STATE REPLAY
+		ArrayList<double[]> states;	//inputs
+		ArrayList<Integer> moves;	//chosen move
+		ArrayList<Double> rewards;	//upd reward
 
 		public Car(double x, double y) {
 			this.pos = new Vector(x, y);
@@ -351,6 +377,9 @@ public class DrivingQLearning extends State {
 			this.rot = 0;
 			this.whichCell = 0;
 			this.maxCell = 0;
+			this.states = new ArrayList<double[]>();
+			this.moves = new ArrayList<Integer>();
+			this.rewards = new ArrayList<Double>();
 		}
 		
 		public void reset() {
@@ -359,6 +388,10 @@ public class DrivingQLearning extends State {
 			this.rot = 0;
 			this.whichCell = 0;
 			this.maxCell = 0;
+			this.states = new ArrayList<double[]>();
+			this.moves = new ArrayList<Integer>();
+			this.rewards = new ArrayList<Double>();
+			this.dead = false;
 		}
 
 		// advance one timestep
@@ -503,11 +536,12 @@ public class DrivingQLearning extends State {
 			
 			//get reward + estimated future reward * discount
 			double reward = 0;
-			reward += this.goalCollision(goals);
+			reward += DrivingQLearning.timeReward;
+			reward += this.goalCollision(goals) == 1? DrivingQLearning.goalReward : 0;
 			boolean wallCollision = false;
 			if(this.wallCollision(walls)) {
 				wallCollision = true;
-				reward -= 100;
+				reward += DrivingQLearning.wallReward;
 			}
 			double maxEstimatedReward = Integer.MIN_VALUE;
 			for(double d : s2Output) {
@@ -515,14 +549,26 @@ public class DrivingQLearning extends State {
 			}
 			reward += maxEstimatedReward * DrivingQLearning.discount;
 			
-			//train value function
-			s1Output[s1Move] = reward;
-			DrivingQLearning.valueFunction.backPropogate(s1Input, s1Output);
+			//put prev state + move + reward combo into memory for later
+			this.states.add(s1Input);
+			this.rewards.add(s1Output[s1Move] + (reward - s1Output[s1Move]) * DrivingQLearning.learningRate);	//adjusted reward after factoring in learning rate
+			this.moves.add(s1Move);
 			
-			//reset if hit wall
-			if(wallCollision) {
-				this.reset();
+			//reset and train function if hit wall or reached end of track
+			if(wallCollision || this.whichCell >= goals.size() - 3) {
+				this.dead = true;
 				DrivingQLearning.trials ++;
+			}
+		}
+		
+		public void experienceReplay() {
+			for(int i = 0; i < this.states.size(); i++) {
+				double[] nextState = this.states.get(i);
+				double[] nextOutput = DrivingQLearning.valueFunction.forwardPropogate(nextState);
+				int nextMove = this.moves.get(i);
+				double nextReward = this.rewards.get(i);
+				nextOutput[nextMove] = nextReward;
+				DrivingQLearning.valueFunction.backPropogate(nextState, nextOutput);
 			}
 		}
 		
@@ -642,7 +688,7 @@ public class DrivingQLearning extends State {
 				double[] nextGoal = goals.get(this.whichCell - 1).get(0);
 				if(this.lineCollision(nextGoal[0], nextGoal[1], nextGoal[2], nextGoal[3])) {
 					this.whichCell --;
-					return -100;
+					return -1;	//going backwards
 				}
 			}
 			//next goal
@@ -652,7 +698,7 @@ public class DrivingQLearning extends State {
 					this.whichCell ++;
 					if(this.maxCell < this.whichCell) {
 						this.maxCell = this.whichCell;
-						return 1;
+						return 1;	//going forwards
 					}
 				}
 			}

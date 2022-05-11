@@ -10,7 +10,7 @@ import java.util.Arrays;
 
 public class NeuralNetwork {
 	
-	public static final double LEARNING_RATE = 0.0001;
+	public static final double LEARNING_RATE = 0.001;
 	
 	//INPUT: 
 	//diff from goal
