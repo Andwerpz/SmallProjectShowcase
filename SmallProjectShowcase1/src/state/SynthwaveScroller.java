@@ -100,8 +100,6 @@ public class SynthwaveScroller extends State {
 	public SynthwaveScroller(StateManager gsm) {
 		super(gsm);
 		
-		
-		
 		try {
 			File dir = new File("./");
 			File file = new File(dir.getAbsolutePath() + "\\res\\Carpenter-Brut-Anarchy-Road.wav");
@@ -116,52 +114,6 @@ public class SynthwaveScroller extends State {
 		}
 		carpenter_brut.play();
 
-		// All by Andwerp (2022) not taken from the internet or anything like that
-		// everything i have is original
-//		try {
-//			File dir = new File("./");
-//			File file = new File(dir.getAbsolutePath() + "\\res\\Carpenter-Brut-Anarchy-Road.wav");
-//			
-//			carpenter_brut = new WavFile(file);
-//			carpenter_brut.play();
-//			
-//			
-//			AudioInputStream in= AudioSystem.getAudioInputStream(file);
-//			AudioInputStream din = null;
-//			AudioFormat baseFormat = in.getFormat();
-////			AudioFormat decodedFormat = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED, 
-////			                                            baseFormat.getSampleRate(),
-////			                                            16,
-////			                                            baseFormat.getChannels(),
-////			                                            baseFormat.getChannels() * 2,
-////			                                            baseFormat.getSampleRate(),
-////			                                            false);
-//			AudioFormat decodedFormat = new AudioFormat(44100f, 16, 1, true, false);
-//			din = AudioSystem.getAudioInputStream(decodedFormat, in);
-//			
-//			carpenter_brut = AudioSystem.getClip();
-//			carpenter_brut.open(din);
-//			
-//			carpenter_brut_line = AudioSystem.getTargetDataLine(decodedFormat);
-//			carpenter_brut_line.open(decodedFormat, buffer_byte_size);
-//			
-//			in.close();
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//		} catch (UnsupportedAudioFileException e) {
-//			e.printStackTrace();
-//		} catch (LineUnavailableException e) {
-//			e.printStackTrace();
-//		}
-//		
-//		float volume = 0.8f;
-//		FloatControl gainControl = (FloatControl) carpenter_brut.getControl(FloatControl.Type.MASTER_GAIN);        
-//		float range = gainControl.getMaximum() - gainControl.getMinimum();
-//		float gain = (range * volume) + gainControl.getMinimum();
-//		gainControl.setValue(gain);
-//		
-//		carpenter_brut.loop(Clip.LOOP_CONTINUOUSLY);
-//		carpenter_brut_line.start();
 	}
 
 	@Override
@@ -238,14 +190,6 @@ public class SynthwaveScroller extends State {
 			graphics_sun2D.fillRect(0, (int) (sun_line_pos - sun_line_cur_size / 2), sun_adj_size, (int) sun_line_cur_size);
 			sun_line_pos += sun_line_increment;
 		}
-
-		// applying gaussian blur to sun
-		// BufferedImage sun_blurred_image = blurredImage(sun_image, 10);
-
-		// g2D.setComposite(AlphaComposite.Xor);
-		// g.drawImage(sun_blurred_image, (MainPanel.WIDTH -
-		// sun_blurred_image.getWidth()) / 2, (MainPanel.HEIGHT -
-		// sun_blurred_image.getHeight()) / 2, null);
 
 		g.drawImage(sun_image, (sun_pos_x * 2 - sun_image.getWidth()) / 2, (sun_pos_y * 2 - sun_image.getHeight()) / 2,
 				null);
