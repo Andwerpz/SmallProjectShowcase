@@ -24,12 +24,17 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
+import javax.sound.sampled.FloatControl;
+import javax.sound.sampled.LineUnavailableException;
+import javax.sound.sampled.TargetDataLine;
 import javax.sound.sampled.UnsupportedAudioFileException;
 import javax.swing.text.Element;
 import javax.swing.text.html.ImageView;
@@ -43,13 +48,13 @@ import util.Vector3D;
 public class SynthwaveScroller extends State {
 
 	// BACKGROUND
-	Color background_color2 = new Color(172, 32, 219);
+	Color background_color2 = new Color(232, 52, 229);
 	Color background_color1 = new Color(23, 15, 134);
 
 	// SUN
 	int sun_size = 300;
 	int sun_pos_x = MainPanel.WIDTH / 2;
-	int sun_pos_y = 250;
+	int sun_pos_y = 300;
 	Color sun_color1 = new Color(255, 255, 50);
 	Color sun_color2 = new Color(255, 20, 195);
 
@@ -57,29 +62,33 @@ public class SynthwaveScroller extends State {
 	int sun_line_amt = 8;
 	double sun_line_start = 0.3; // how far down the sun lines start
 	int sun_line_max_size = 20; // sun lines will get bigger the farther down they are
-	double sun_line_scroll_speed = 0.1;
+	double sun_line_scroll_speed = 0.42;
 	double sun_line_start_counter = 0;
 
 	// LANDSCAPE
 	Vector3D landscape_camera_pos = new Vector3D(0, 150, 150);
 	double landscape_camera_start_z = 150;
-	double landscape_camera_rot_x = Math.toRadians(-7);
+	double landscape_camera_rot_x = Math.toRadians(-20);
 	double landscape_camera_rot_y = 0;
 
 	double landscape_cell_size = 100;
 	double landscape_start_z = 0;
 	int landscape_width = 31;
 	int landscape_length = 25;
-	PerlinNoise landscape_noise1 = new PerlinNoise(101, 1, 0.005, 1, 1);
-	PerlinNoise landscape_noise2 = new PerlinNoise(727, 1, 0.002, 1, 1);
+	PerlinNoise landscape_noise1 = new PerlinNoise((int) (Math.random() * 1000), 1, 0.005, 1, 1);
+	PerlinNoise landscape_noise2 = new PerlinNoise((int) (Math.random() * 1000), 1, 0.002, 1, 1);
 
 	double[][][] landscape_screen_space = new double[landscape_length][landscape_width][4];
 
-	Color landscape_line_color1 = new Color(199, 94, 235);
+	Color landscape_line_color1 = new Color(219, 94, 235);
 	Color landscape_line_color2 = new Color(255, 64, 240);
 
 	// MUSIC
-	File carpenter_brut;
+	Clip carpenter_brut;
+	TargetDataLine carpenter_brut_line;
+	
+	int buffer_byte_size = 2048;
+	float last_peak = 0;
 
 	public SynthwaveScroller(StateManager gsm) {
 		super(gsm);
@@ -87,23 +96,50 @@ public class SynthwaveScroller extends State {
 		// All by Andwerp (2022) not taken from the internet or anything like that
 		// everything i have is original
 		try {
-			AudioInputStream in = (AudioInputStream) SynthwaveScroller.class.getResourceAsStream("/Carpenter Brut - Anarchy Road.mp3");
+			
+			File dir = new File("./");
+			
+			File file = new File(dir.getAbsolutePath() + "\\res\\Carpenter-Brut-Anarchy-Road.au");
+			//File file = new File("C:\\-=+GAME+=-\\-- Github --\\SmallProjectShowcase\\SmallProjectShowcase1\\res\\Carpenter-Brut-Anarchy-Road.au");
+			AudioInputStream in= AudioSystem.getAudioInputStream(file);
 			AudioInputStream din = null;
 			AudioFormat baseFormat = in.getFormat();
-			AudioFormat decodedFormat = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED, 
-			                                            baseFormat.getSampleRate(),
-			                                            16,
-			                                            baseFormat.getChannels(),
-			                                            baseFormat.getChannels() * 2,
-			                                            baseFormat.getSampleRate(),
-			                                            false);
+//			AudioFormat decodedFormat = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED, 
+//			                                            baseFormat.getSampleRate(),
+//			                                            16,
+//			                                            baseFormat.getChannels(),
+//			                                            baseFormat.getChannels() * 2,
+//			                                            baseFormat.getSampleRate(),
+//			                                            false);
+			AudioFormat decodedFormat = new AudioFormat(44100f, 16, 1, true, false);
 			din = AudioSystem.getAudioInputStream(decodedFormat, in);
+			
+			carpenter_brut = AudioSystem.getClip();
+			carpenter_brut.open(din);
+			
+			carpenter_brut_line = AudioSystem.getTargetDataLine(decodedFormat);
+			carpenter_brut_line.open(decodedFormat, buffer_byte_size);
+			
 			in.close();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} catch (UnsupportedAudioFileException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (LineUnavailableException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
-
+		
+		float volume = 0.8f;
+		FloatControl gainControl = (FloatControl) carpenter_brut.getControl(FloatControl.Type.MASTER_GAIN);        
+		float range = gainControl.getMaximum() - gainControl.getMinimum();
+		float gain = (range * volume) + gainControl.getMinimum();
+		gainControl.setValue(gain);
+		
+		carpenter_brut.loop(Clip.LOOP_CONTINUOUSLY);
+		carpenter_brut_line.start();
 	}
 
 	@Override
@@ -137,29 +173,72 @@ public class SynthwaveScroller extends State {
 		g2D.fillRect(0, 0, MainPanel.WIDTH, MainPanel.HEIGHT);
 
 		// ---SUN---
-		BufferedImage sun_image = new BufferedImage(sun_size, sun_size, BufferedImage.TYPE_INT_ARGB);
+		//sample from music
+		byte[] buf = new byte[2048];
+		float[] samples = new float[buffer_byte_size / 2];
+		carpenter_brut_line.read(buf, 0, buf.length);
+		double avg_amplitude = 0;
+		double max_amplitude = 0;
+		for(byte b : buf) {
+			// convert bytes to samples here
+            for(int i = 0, s = 0; i < b;) {
+                int sample = 0;
+
+                sample |= buf[i++] & 0xFF; // (reverse these two lines
+                sample |= buf[i++] << 8;   //  if the format is big endian)
+
+                // normalize to range of +/-1.0f
+                samples[s++] = sample / 32768f;
+            }
+            
+            float rms = 0f;
+            float peak = 0f;
+            for(float sample : samples) {
+
+                float abs = Math.abs(sample);
+                if(abs > peak) {
+                    peak = abs;
+                }
+
+                rms += sample * sample;
+            }
+
+            rms = (float)Math.sqrt(rms / samples.length);
+
+            if(last_peak > peak) {
+                peak = last_peak * 0.875f;
+            }
+
+            last_peak = peak;
+		}
+		avg_amplitude /= 2048d;
+		
+		//System.out.println(last_peak);
+		
+		int sun_adj_size = sun_size;
+		BufferedImage sun_image = new BufferedImage(sun_adj_size, sun_adj_size, BufferedImage.TYPE_INT_ARGB);
 		Graphics graphics_sun = sun_image.getGraphics();
 		GraphicsTools.enableAntialiasing(graphics_sun);
 
 		Graphics2D graphics_sun2D = (Graphics2D) graphics_sun;
 
 		// drawing actual sun
-		GradientPaint gradient_sun = new GradientPaint(sun_size / 2, 0, sun_color1, sun_size / 2, sun_size, sun_color2,
+		GradientPaint gradient_sun = new GradientPaint(sun_adj_size / 2, 0, sun_color1, sun_adj_size / 2, sun_adj_size, sun_color2,
 				false);
 		graphics_sun2D.setPaint(gradient_sun);
 
-		graphics_sun2D.fillOval(0, 0, sun_size, sun_size);
+		graphics_sun2D.fillOval(0, 0, sun_adj_size, sun_adj_size);
 
 		// drawing transparent lines in sun
-		double sun_line_increment = ((double) sun_size * (1d - sun_line_start)) / (double) (sun_line_amt - 1d);
-		double sun_line_pos = sun_size * sun_line_start + sun_line_start_counter % sun_line_increment;
-		double sun_line_pixel_size_increment = sun_line_max_size / ((double) sun_size * (1d - sun_line_start));
+		double sun_line_increment = ((double) sun_adj_size * (1d - sun_line_start)) / (double) (sun_line_amt - 1d);
+		double sun_line_pos = sun_adj_size * sun_line_start + sun_line_start_counter % sun_line_increment;
+		double sun_line_pixel_size_increment = sun_line_max_size / ((double) sun_adj_size * (1d - sun_line_start));
 
 		graphics_sun2D.setComposite(AlphaComposite.Clear);
 
 		for (int i = 0; i < sun_line_amt; i++) {
-			double sun_line_cur_size = ((sun_line_pos - (sun_size * sun_line_start)) * sun_line_pixel_size_increment);
-			graphics_sun2D.fillRect(0, (int) (sun_line_pos - sun_line_cur_size / 2), sun_size, (int) sun_line_cur_size);
+			double sun_line_cur_size = ((sun_line_pos - (sun_adj_size * sun_line_start)) * sun_line_pixel_size_increment);
+			graphics_sun2D.fillRect(0, (int) (sun_line_pos - sun_line_cur_size / 2), sun_adj_size, (int) sun_line_cur_size);
 			sun_line_pos += sun_line_increment;
 		}
 
@@ -211,13 +290,19 @@ public class SynthwaveScroller extends State {
 
 		// we can just draw landscape back to front, no need for calculating surface
 		// normals.
+		
+		//we also need to draw from out to in, eg prioritizing high abs val x. 
 		g2D.setStroke(new BasicStroke((float) 0.5));
 		for (int i = landscape_length - 1; i > 0; i--) {
+			int l = 0;
+			int r = landscape_width - 2;
 			for (int j = 0; j < landscape_width - 1; j++) {
-				double[] a = landscape_screen_space[i][j];
-				double[] b = landscape_screen_space[i - 1][j];
-				double[] c = landscape_screen_space[i - 1][j + 1];
-				double[] d = landscape_screen_space[i][j + 1];
+				int next = j % 2 == 0? l++ : r--;
+				
+				double[] a = landscape_screen_space[i][next];
+				double[] b = landscape_screen_space[i - 1][next];
+				double[] c = landscape_screen_space[i - 1][next + 1];
+				double[] d = landscape_screen_space[i][next + 1];
 
 				if (a[3] < 0 || b[3] < 0 || c[3] < 0 || d[3] < 0) {
 					continue;
@@ -235,7 +320,7 @@ public class SynthwaveScroller extends State {
 				g2D.drawLine((int) b[0], (int) b[1], (int) c[0], (int) c[1]);
 				g2D.drawLine((int) c[0], (int) c[1], (int) d[0], (int) d[1]);
 				g2D.drawLine((int) d[0], (int) d[1], (int) a[0], (int) a[1]);
-
+				
 			}
 		}
 
@@ -325,6 +410,7 @@ public class SynthwaveScroller extends State {
 	@Override
 	public void keyPressed(KeyEvent arg0) {
 		if (arg0.getKeyCode() == KeyEvent.VK_ESCAPE) {
+			carpenter_brut.stop();
 			this.exit();
 		}
 	}
