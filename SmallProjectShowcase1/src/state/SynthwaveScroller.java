@@ -27,6 +27,7 @@ import java.io.OutputStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
@@ -44,6 +45,7 @@ import util.GraphicsTools;
 import util.MathTools;
 import util.PerlinNoise;
 import util.Vector3D;
+import util.WavFile;
 
 public class SynthwaveScroller extends State {
 
@@ -63,7 +65,7 @@ public class SynthwaveScroller extends State {
 	int sun_line_amt = 8;
 	double sun_line_start = 0.3; // how far down the sun lines start
 	int sun_line_max_size = 20; // sun lines will get bigger the farther down they are
-	double sun_line_scroll_speed = 0.35;
+	double sun_line_scroll_speed = 0.05;
 	double sun_line_start_counter = 0;
 
 	// LANDSCAPE
@@ -82,66 +84,84 @@ public class SynthwaveScroller extends State {
 
 	double[][][] landscape_screen_space = new double[landscape_length][landscape_width][4];
 
-	Color landscape_line_color1 = new Color(219, 94, 235);
-	Color landscape_line_color2 = new Color(255, 64, 240);
+	Color landscape_line_color1 = new Color(235, 100, 235);
+	Color landscape_line_color2 = new Color(255, 230, 240);
 
 	// MUSIC
-	Clip carpenter_brut;
+	WavFile carpenter_brut;
 	TargetDataLine carpenter_brut_line;
 	
-	int buffer_byte_size = 2048;
+	int sample_rate;
 	float last_peak = 0;
+	int bit_depth = 65536;	//16 bit
+	
+	ArrayList<Float> waveform = new ArrayList<>();
 
 	public SynthwaveScroller(StateManager gsm) {
 		super(gsm);
-
-		// All by Andwerp (2022) not taken from the internet or anything like that
-		// everything i have is original
+		
+		
+		
 		try {
-			
 			File dir = new File("./");
-			
-			File file = new File(dir.getAbsolutePath() + "\\res\\Carpenter-Brut-Anarchy-Road.au");
-			//File file = new File("C:\\-=+GAME+=-\\-- Github --\\SmallProjectShowcase\\SmallProjectShowcase1\\res\\Carpenter-Brut-Anarchy-Road.au");
-			AudioInputStream in= AudioSystem.getAudioInputStream(file);
-			AudioInputStream din = null;
-			AudioFormat baseFormat = in.getFormat();
-//			AudioFormat decodedFormat = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED, 
-//			                                            baseFormat.getSampleRate(),
-//			                                            16,
-//			                                            baseFormat.getChannels(),
-//			                                            baseFormat.getChannels() * 2,
-//			                                            baseFormat.getSampleRate(),
-//			                                            false);
-			AudioFormat decodedFormat = new AudioFormat(44100f, 16, 1, true, false);
-			din = AudioSystem.getAudioInputStream(decodedFormat, in);
-			
-			carpenter_brut = AudioSystem.getClip();
-			carpenter_brut.open(din);
-			
-			carpenter_brut_line = AudioSystem.getTargetDataLine(decodedFormat);
-			carpenter_brut_line.open(decodedFormat, buffer_byte_size);
-			
-			in.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			File file = new File(dir.getAbsolutePath() + "\\res\\Carpenter-Brut-Anarchy-Road.wav");
+			carpenter_brut = new WavFile(file);
+			sample_rate = carpenter_brut.getSampleRate();
 		} catch (UnsupportedAudioFileException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (LineUnavailableException e) {
+		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-		float volume = 0.8f;
-		FloatControl gainControl = (FloatControl) carpenter_brut.getControl(FloatControl.Type.MASTER_GAIN);        
-		float range = gainControl.getMaximum() - gainControl.getMinimum();
-		float gain = (range * volume) + gainControl.getMinimum();
-		gainControl.setValue(gain);
-		
-		carpenter_brut.loop(Clip.LOOP_CONTINUOUSLY);
-		carpenter_brut_line.start();
+		carpenter_brut.play();
+
+		// All by Andwerp (2022) not taken from the internet or anything like that
+		// everything i have is original
+//		try {
+//			File dir = new File("./");
+//			File file = new File(dir.getAbsolutePath() + "\\res\\Carpenter-Brut-Anarchy-Road.wav");
+//			
+//			carpenter_brut = new WavFile(file);
+//			carpenter_brut.play();
+//			
+//			
+//			AudioInputStream in= AudioSystem.getAudioInputStream(file);
+//			AudioInputStream din = null;
+//			AudioFormat baseFormat = in.getFormat();
+////			AudioFormat decodedFormat = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED, 
+////			                                            baseFormat.getSampleRate(),
+////			                                            16,
+////			                                            baseFormat.getChannels(),
+////			                                            baseFormat.getChannels() * 2,
+////			                                            baseFormat.getSampleRate(),
+////			                                            false);
+//			AudioFormat decodedFormat = new AudioFormat(44100f, 16, 1, true, false);
+//			din = AudioSystem.getAudioInputStream(decodedFormat, in);
+//			
+//			carpenter_brut = AudioSystem.getClip();
+//			carpenter_brut.open(din);
+//			
+//			carpenter_brut_line = AudioSystem.getTargetDataLine(decodedFormat);
+//			carpenter_brut_line.open(decodedFormat, buffer_byte_size);
+//			
+//			in.close();
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		} catch (UnsupportedAudioFileException e) {
+//			e.printStackTrace();
+//		} catch (LineUnavailableException e) {
+//			e.printStackTrace();
+//		}
+//		
+//		float volume = 0.8f;
+//		FloatControl gainControl = (FloatControl) carpenter_brut.getControl(FloatControl.Type.MASTER_GAIN);        
+//		float range = gainControl.getMaximum() - gainControl.getMinimum();
+//		float gain = (range * volume) + gainControl.getMinimum();
+//		gainControl.setValue(gain);
+//		
+//		carpenter_brut.loop(Clip.LOOP_CONTINUOUSLY);
+//		carpenter_brut_line.start();
 	}
 
 	@Override
@@ -166,7 +186,24 @@ public class SynthwaveScroller extends State {
 	@Override
 	public void draw(Graphics g) {
 		GraphicsTools.enableAntialiasing(g);
-
+		
+		//---MUSIC---
+		//System.out.println(carpenter_brut.getAudioFormat());
+		int cur_frame = carpenter_brut.getClip().getFramePosition();
+		//System.out.println(carpenter_brut.getSampleInt(cur_frame));
+		int num_sample = 1000;
+		float cur_sample = 0;
+		int num_discarded = 0;
+		for(int i = cur_frame; i < Math.min(cur_frame + num_sample, carpenter_brut.getFramesCount()); i++) {
+			float cur = bit_depth / 2 - Math.abs(carpenter_brut.getSampleInt(i) - (bit_depth / 2));
+			//System.out.println(cur);
+			cur = cur / (float) (bit_depth / 2);	//normalizing
+			cur_sample += cur;
+		}
+		cur_sample /= num_sample == num_discarded? 1f : (float) (num_sample - num_discarded);
+		last_peak = (float) Math.max(last_peak * 0.85, cur_sample);
+		waveform.add(cur_sample);
+		
 		// ---BACKGROUND---
 		GradientPaint background_gradient = new GradientPaint(0, 0, background_color1, 0, MainPanel.HEIGHT,
 				background_color2, false);
@@ -175,49 +212,7 @@ public class SynthwaveScroller extends State {
 		g2D.fillRect(0, 0, MainPanel.WIDTH, MainPanel.HEIGHT);
 
 		// ---SUN---
-		//sample from music
-		byte[] buf = new byte[2048];
-		float[] samples = new float[buffer_byte_size / 2];
-		carpenter_brut_line.read(buf, 0, buf.length);
-		double avg_amplitude = 0;
-		double max_amplitude = 0;
-		for(byte b : buf) {
-			// convert bytes to samples here
-            for(int i = 0, s = 0; i < b;) {
-                int sample = 0;
-
-                sample |= buf[i++] & 0xFF; // (reverse these two lines
-                sample |= buf[i++] << 8;   //  if the format is big endian)
-
-                // normalize to range of +/-1.0f
-                samples[s++] = sample / 32768f;
-            }
-            
-            float rms = 0f;
-            float peak = 0f;
-            for(float sample : samples) {
-
-                float abs = Math.abs(sample);
-                if(abs > peak) {
-                    peak = abs;
-                }
-
-                rms += sample * sample;
-            }
-
-            rms = (float)Math.sqrt(rms / samples.length);
-
-            if(last_peak > peak) {
-                peak = last_peak * 0.875f;
-            }
-
-            last_peak = peak;
-		}
-		avg_amplitude /= 2048d;
-		
-		//System.out.println(last_peak);
-		
-		int sun_adj_size = sun_size;
+		int sun_adj_size = sun_size + (int) (last_peak * 50f);
 		BufferedImage sun_image = new BufferedImage(sun_adj_size, sun_adj_size, BufferedImage.TYPE_INT_ARGB);
 		Graphics graphics_sun = sun_image.getGraphics();
 		GraphicsTools.enableAntialiasing(graphics_sun);
@@ -256,7 +251,11 @@ public class SynthwaveScroller extends State {
 				null);
 
 		// ---LANDSCAPE---
-
+		
+		//color lines based off of sound
+		Color line_color = new Color(235, Math.min(235, 70 + (int) (200f * cur_sample)), 235);
+		
+		
 		// calc landscape
 		Vector3D landscape_cur_camera_pos = new Vector3D(landscape_camera_pos);
 		double landscape_total_width = landscape_cell_size * (landscape_width - 1);
@@ -311,21 +310,35 @@ public class SynthwaveScroller extends State {
 				}
 
 				g2D.setColor(Color.BLACK);
-				g2D.fillPolygon(new int[] { (int) a[0], (int) b[0], (int) c[0] },
-						new int[] { (int) a[1], (int) b[1], (int) c[1] }, 3);
-				g2D.fillPolygon(new int[] { (int) c[0], (int) d[0], (int) a[0] },
-						new int[] { (int) c[1], (int) d[1], (int) a[1] }, 3);
-				g2D.drawLine((int) a[0], (int) a[1], (int) c[0], (int) c[1]);
+				g2D.fillPolygon(new int[] { (int) a[0], (int) b[0], (int) c[0], (int) d[0] },
+						new int[] { (int) a[1], (int) b[1], (int) c[1], (int) d[1]}, 4);
 
-				g2D.setColor(landscape_line_color1);
-				g2D.drawLine((int) a[0], (int) a[1], (int) b[0], (int) b[1]);
-				g2D.drawLine((int) b[0], (int) b[1], (int) c[0], (int) c[1]);
-				g2D.drawLine((int) c[0], (int) c[1], (int) d[0], (int) d[1]);
+				g2D.setColor(line_color);
 				g2D.drawLine((int) d[0], (int) d[1], (int) a[0], (int) a[1]);
-				
+				if(j == landscape_width - 2) {
+					g2D.drawLine((int) a[0], (int) a[1], (int) b[0], (int) b[1]);
+					g2D.drawLine((int) c[0], (int) c[1], (int) d[0], (int) d[1]);
+				}
+				else if(j % 2 == 0) {
+					g2D.drawLine((int) a[0], (int) a[1], (int) b[0], (int) b[1]);
+				}
+				else {
+					g2D.drawLine((int) c[0], (int) c[1], (int) d[0], (int) d[1]);
+				}
 			}
 		}
 
+		
+		//draw waveform
+//		g2D.setStroke(new BasicStroke());
+//		g2D.setColor(Color.GREEN);
+//		for(int i = 0; i < waveform.size(); i++) {
+//			g.fillRect(i, 0, 1, (int) (waveform.get(i) * 200));
+//		}
+//		
+		if(waveform.size() >= MainPanel.WIDTH) {
+			waveform.clear();
+		}
 	}
 
 	public static BufferedImage blurredImage(BufferedImage source, double radius) {
