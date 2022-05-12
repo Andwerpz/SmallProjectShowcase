@@ -49,7 +49,8 @@ public class SynthwaveScroller extends State {
 
 	// BACKGROUND
 	Color background_color2 = new Color(232, 52, 229);
-	Color background_color1 = new Color(23, 15, 134);
+	Color background_color1 = new Color(10, 10, 30);
+	//Color background_color1 = Color.BLACK;
 
 	// SUN
 	int sun_size = 300;
@@ -62,7 +63,7 @@ public class SynthwaveScroller extends State {
 	int sun_line_amt = 8;
 	double sun_line_start = 0.3; // how far down the sun lines start
 	int sun_line_max_size = 20; // sun lines will get bigger the farther down they are
-	double sun_line_scroll_speed = 0.42;
+	double sun_line_scroll_speed = 0.35;
 	double sun_line_start_counter = 0;
 
 	// LANDSCAPE
@@ -73,6 +74,7 @@ public class SynthwaveScroller extends State {
 
 	double landscape_cell_size = 100;
 	double landscape_start_z = 0;
+	double landscape_scroll_speed = 5;
 	int landscape_width = 31;
 	int landscape_length = 25;
 	PerlinNoise landscape_noise1 = new PerlinNoise((int) (Math.random() * 1000), 1, 0.005, 1, 1);
@@ -155,7 +157,7 @@ public class SynthwaveScroller extends State {
 		sun_line_start_counter += sun_line_scroll_speed;
 
 		// upd camera
-		landscape_camera_pos.z += 1;
+		landscape_camera_pos.z += landscape_scroll_speed;
 		if (landscape_camera_pos.z - landscape_camera_start_z - landscape_start_z > 100) {
 			landscape_start_z += 100;
 		}
