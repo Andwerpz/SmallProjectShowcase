@@ -59,6 +59,14 @@ public class InputManager {
 		return false;
 	}
 	
+	public void setToggled(String name, boolean toggle) {
+		for(Input i : inputs) {
+			if(i instanceof ToggleButton && i.name.equals(name)) {
+				((ToggleButton) i).setToggled(toggle);
+			}
+		}
+	}
+	
 	//gets text from text input
 	public String getText(String name) {
 		for(Input i : inputs) {

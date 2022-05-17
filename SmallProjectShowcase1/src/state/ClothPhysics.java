@@ -9,6 +9,8 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 import java.util.ArrayList;
 
+import input.InputManager;
+import input.ToggleButton;
 import main.MainPanel;
 import state.VerletPhysics.Particle;
 import state.VerletPhysics.Spring;
@@ -19,6 +21,8 @@ import util.Vector;
 import util.Vector3D;
 
 public class ClothPhysics extends State {
+	
+	InputManager im;
 	
 	Vector3D gravity = new Vector3D(0, -0.1, 0);
 	Vector3D light = new Vector3D(0, -1, 0);
@@ -55,6 +59,14 @@ public class ClothPhysics extends State {
 
 	public ClothPhysics(StateManager gsm) {
 		super(gsm);
+		
+		im = new InputManager();
+		
+		im.addInput(new ToggleButton(10, 10, 100, 25, "Draw Tris", "toggle_btn_draw_tris"));
+		im.addInput(new ToggleButton(10, 40, 100, 25, "Draw Springs", "toggle_btn_draw_springs"));
+		im.addInput(new ToggleButton(10, 70, 100, 25, "Draw Vertices", "toggle_btn_draw_vertices"));
+		
+		im.setToggled("toggle_btn_draw_tris", true);
 		
 		int tileSize = 150;
 		int numTiles = 12;
@@ -135,8 +147,10 @@ public class ClothPhysics extends State {
 	@Override
 	public void tick(Point mouse2) {
 		this.mouse = mouse2;
-		
-		
+		im.tick(mouse2);
+		this.drawTris = im.getToggled("toggle_btn_draw_tris");
+		this.drawSprings = im.getToggled("toggle_btn_draw_springs");
+		this.drawParticles = im.getToggled("toggle_btn_draw_vertices");
 	}
 
 	@Override
@@ -224,10 +238,7 @@ public class ClothPhysics extends State {
 				
 				if(az[0] > 0 && bz[0] > 0 && cz[0] > 0) {
 					int[] x = {(int) a.x, (int) b.x, (int) c.x};
-					int[] y = {
-							(int) (MainPanel.HEIGHT / 2 - (a.y - MainPanel.HEIGHT / 2)), 
-							(int) (MainPanel.HEIGHT / 2 - (b.y - MainPanel.HEIGHT / 2)), 
-							(int) (MainPanel.HEIGHT / 2 - (c.y - MainPanel.HEIGHT / 2))};
+					int[] y = {(int) a.y, (int) b.y, (int) c.y};
 					
 					g.fillPolygon(x, y, 3);
 				}
@@ -289,7 +300,7 @@ public class ClothPhysics extends State {
 			}
 		}
 		
-		
+		im.draw(g);
 	}
 
 	@Override
@@ -361,8 +372,7 @@ public class ClothPhysics extends State {
 
 	@Override
 	public void mouseClicked(MouseEvent arg0) {
-		// TODO Auto-generated method stub
-		
+		im.mouseClicked(arg0);
 	}
 
 	@Override
@@ -379,11 +389,13 @@ public class ClothPhysics extends State {
 
 	@Override
 	public void mousePressed(MouseEvent arg0) {
+		im.mousePressed(arg0);
 		pressed = true;
 	}
 
 	@Override
 	public void mouseReleased(MouseEvent arg0) {
+		im.mouseReleased(arg0);
 		pressed = false;
 	}
 
@@ -439,7 +451,7 @@ public class ClothPhysics extends State {
 			if(zBuffer[0] > 0) {
 				g.fillOval(
 						(int) (drawn.x - this.radius), 
-						(int) (MainPanel.HEIGHT / 2 - (drawn.y - MainPanel.HEIGHT / 2) - this.radius), 
+						(int) (drawn.y - this.radius), 
 						(int) (this.radius * 2), 
 						(int) (this.radius * 2));
 			}
@@ -537,9 +549,9 @@ public class ClothPhysics extends State {
 			if(az[0] > 0 && bz[0] > 0) {
 				g.drawLine(
 						(int) aDrawn.x, 
-						(int) (MainPanel.HEIGHT / 2 - (aDrawn.y - MainPanel.HEIGHT / 2)), 
+						(int) aDrawn.y, 
 						(int) bDrawn.x, 
-						(int) (MainPanel.HEIGHT / 2 - (bDrawn.y - MainPanel.HEIGHT / 2)));
+						(int) bDrawn.y);
 			}
 		}
 		
@@ -558,10 +570,11 @@ public class ClothPhysics extends State {
 		//only call if already projected
 		public void draw(Graphics g) {
 			int[] x = {(int) p[0].x, (int) p[1].x, (int) p[2].x};
-			int[] y = {
-					(int) (MainPanel.HEIGHT / 2 - (p[0].y - MainPanel.HEIGHT / 2)), 
-					(int) (MainPanel.HEIGHT / 2 - (p[1].y - MainPanel.HEIGHT / 2)), 
-					(int) (MainPanel.HEIGHT / 2 - (p[2].y - MainPanel.HEIGHT / 2))};
+			int[] y = {(int) p[0].y, (int) p[1].y, (int) p[2].y};
+//			int[] y = {
+//					(int) (MainPanel.HEIGHT / 2 - (p[0].y - MainPanel.HEIGHT / 2)), 
+//					(int) (MainPanel.HEIGHT / 2 - (p[1].y - MainPanel.HEIGHT / 2)), 
+//					(int) (MainPanel.HEIGHT / 2 - (p[2].y - MainPanel.HEIGHT / 2))};
 			
 			int color = (int) (255d * brightness);
 			//System.out.println(color);
