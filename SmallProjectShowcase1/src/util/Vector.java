@@ -3,6 +3,10 @@ package util;
 import java.awt.Point;
 
 public class Vector extends util.Point{
+	
+	public Vector() {
+		super(0, 0);
+	}
 
 	public Vector(double x, double y) {
 		super(x, y);
@@ -24,6 +28,10 @@ public class Vector extends util.Point{
 
 	public double getMagnitude() {
 		return Math.sqrt(this.x * this.x + this.y * this.y);
+	}
+	
+	public double getMagnitudeSquared() {
+		return this.x * this.x + this.y * this.y;
 	}
 	
 	public void normalize() {
@@ -49,9 +57,67 @@ public class Vector extends util.Point{
 		return Math.asin(this.y / this.getMagnitude());
 	}
 	
-	public void multiply(double val) {
+	public Vector addi(Vector v) {
+		this.x += v.x;
+		this.y += v.y;
+		return this;
+	}
+	
+	public Vector add(Vector v) {
+		return new Vector(this.x + v.x, this.y + v.y);
+	}
+	
+	public Vector muli(double val) {
 		this.x *= val;
 		this.y *= val;
+		return this;
+	}
+	
+	public Vector mul(double val) {
+		return new Vector(this.x * val, this.y * val);
+	}
+
+
+	public Vector set(double x, double y) {
+		this.x = x;
+		this.y = y;
+		return this;
+	}
+	
+	public Vector set(Vector vector) {
+		this.x = vector.x;
+		this.y = vector.y;
+		return this;
+	}
+	
+	public Vector neg() {
+		return new Vector(-this.x, -this.y);
+	}
+	
+	public Vector negi() {
+		this.x = -this.x;
+		this.y = -this.y;
+		return this;
+	}
+
+	public Vector subi(Vector vector) {
+		this.x -= vector.x;
+		this.y -= vector.y;
+		return this;
+	}
+	
+	public Vector sub(Vector vector) {
+		return new Vector(this.x - vector.x, this.y - vector.y);
+	}
+
+	public Vector divi(double val) {
+		this.x /= val;
+		this.y /= val;
+		return this;
+	}
+	
+	public Vector div(double val) {
+		return new Vector(this.x / val, this.y / val);
 	}
 
 }

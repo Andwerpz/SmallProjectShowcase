@@ -197,7 +197,7 @@ public class VerletPhysics extends State {
 			
 			Vector nextPos = new Vector(pos);
 			Vector vel = new Vector(prevPos, pos);
-			vel.multiply(1);
+			vel.muli(1);
 			nextPos.addVector(vel);
 			
 			nextPos.addVector(gravity);

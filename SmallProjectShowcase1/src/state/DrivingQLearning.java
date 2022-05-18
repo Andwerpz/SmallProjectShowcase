@@ -404,7 +404,7 @@ public class DrivingQLearning extends State {
 			this.vel.addVector(accelVector);
 
 			// apply friction
-			this.vel.multiply(1d - this.friction);
+			this.vel.muli(1d - this.friction);
 
 			// upd pos
 			this.pos.addVector(this.vel);
@@ -636,7 +636,7 @@ public class DrivingQLearning extends State {
 			double[][] drawnCorners = new double[4][2];
 			for (int i = 0; i < 4; i++) {
 				Vector c = new Vector(corners[i][0], corners[i][1]);
-				c.multiply(this.size);
+				c.muli(this.size);
 				c.rotateCounterClockwise(rot);
 				c.addVector(this.pos);
 				drawnCorners[i][0] = c.x;
@@ -653,7 +653,7 @@ public class DrivingQLearning extends State {
 			double[][] corners = new double[4][2];
 			for (int i = 0; i < 4; i++) {
 				Vector c = new Vector(this.corners[i][0], this.corners[i][1]);
-				c.multiply(this.size);
+				c.muli(this.size);
 				c.rotateCounterClockwise(rot);
 				c.addVector(this.pos);
 				corners[i][0] = c.x;

@@ -276,7 +276,7 @@ public class Fireworks extends State {
 				}
 				
 				g.setColor(this.color);
-				g.fillOval((int) drawn.x, MainPanel.HEIGHT / 2 - ((int) drawn.y - MainPanel.HEIGHT / 2), size, size);
+				g.fillOval((int) drawn.x, (int) drawn.y, size, size);
 			}
 			
 		}
