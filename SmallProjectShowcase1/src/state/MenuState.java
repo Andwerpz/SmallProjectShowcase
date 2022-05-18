@@ -112,7 +112,8 @@ class MainScrollWindow extends ScrollWindow{
 			"Tic Tac Toe Q Learning",
 			"Driving Q Learning",
 			"Synthwave Scroller",
-			"Impulse Resolution"
+			"Impulse Resolution",
+			"Fruit Ninja"
 			};
 
 	public MainScrollWindow(int x, int y, int width, int height, int realHeight) {
@@ -193,6 +194,10 @@ class MainScrollWindow extends ScrollWindow{
 				
 			case "Impulse Resolution":
 				MainPanel.gsm.states.push(new ImpulseResolution(MainPanel.gsm));
+				break;
+				
+			case "Fruit Ninja":
+				MainPanel.gsm.states.push(new FruitNinja(MainPanel.gsm));
 				break;
 			}
 		}
