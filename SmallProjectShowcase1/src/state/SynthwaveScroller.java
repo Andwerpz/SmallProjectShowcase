@@ -221,8 +221,8 @@ public class SynthwaveScroller extends State {
 				// transform to screen space
 				Vector3D camera_space_vec = MathTools.cameraTransform(new Vector3D(x, y, z), landscape_cur_camera_pos,
 						landscape_camera_rot_x, landscape_camera_rot_y);
-				Vector3D projected_vec = MathTools.projectPoint(camera_space_vec, w);
-				Vector3D screen_space_vec = MathTools.scalePoint(projected_vec);
+				Vector3D projected_vec = MathTools.projectVector(camera_space_vec, w);
+				Vector3D screen_space_vec = MathTools.scaleVector(projected_vec);
 
 				// save
 				landscape_screen_space[i][j][0] = screen_space_vec.x;

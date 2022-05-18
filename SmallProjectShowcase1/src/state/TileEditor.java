@@ -67,7 +67,7 @@ public class TileEditor extends State {
 		int dy = mouse2.y - prevMouse.y;
 
 		if (pressedLeft) {
-			offset.addVector(new Vector(dx, dy));
+			offset.add(new Vector(dx, dy));
 		}
 
 		prevMouse = new java.awt.Point(mouse2.x, mouse2.y);

@@ -13,8 +13,6 @@ import util.Vector;
 import util.Vector3D;
 import util.GraphicsTools;
 import util.MathTools;
-import util.Point;
-import util.Point3D;
 
 public class Fireworks extends State {
 	
@@ -258,8 +256,8 @@ public class Fireworks extends State {
 			Vector3D drawn = MathTools.cameraTransform(pos, camera, xRot, yRot);
 			
 			double[] zBuffer = new double[] {0};
-			drawn = MathTools.projectPoint(drawn, zBuffer);
-			drawn = MathTools.scalePoint(drawn);
+			drawn = MathTools.projectVector(drawn, zBuffer);
+			drawn = MathTools.scaleVector(drawn);
 			
 			if(zBuffer[0] > 0) {
 				Graphics2D g2 = (Graphics2D) g;
@@ -284,13 +282,13 @@ public class Fireworks extends State {
 		public void explode() {
 			for(int i = 0; i < 100; i++) {
 				//generate random point within sphere
-				Point3D p = new Point3D(0, 0, 0);
+				Vector3D p = new Vector3D(0, 0, 0);
 				while(true) {
 					p.x = Math.random() * 2 - 1;
 					p.y = Math.random() * 2 - 1;
 					p.z = Math.random() * 2 - 1;
 					
-					if(MathTools.dist3D(p, new Point3D(0, 0, 0)) < 1) {
+					if(MathTools.dist3D(p, new Vector3D(0, 0, 0)) < 1) {
 						break;
 					}
 				}

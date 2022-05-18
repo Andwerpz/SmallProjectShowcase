@@ -103,7 +103,7 @@ public class DrivingQLearning extends State {
 		int dx = (int) (mouse2.x - prevMouse.x);
 		int dy = (int) (mouse2.y - prevMouse.y);
 		if(mousePressed) {
-			this.camera.subtractVector(new Vector(dx, dy));
+			this.camera.sub(new Vector(dx, dy));
 		}
 		prevMouse = new Vector(mouse2.x, mouse2.y);
 	}
@@ -401,13 +401,13 @@ public class DrivingQLearning extends State {
 			Vector accelVector = new Vector(1, 0);
 			accelVector.rotateCounterClockwise(this.rot);
 			accelVector.setMagnitude(minAccel + (maxAccel - minAccel) * accel);
-			this.vel.addVector(accelVector);
+			this.vel.add(accelVector);
 
 			// apply friction
-			this.vel.muli(1d - this.friction);
+			this.vel.mul(1d - this.friction);
 
 			// upd pos
-			this.pos.addVector(this.vel);
+			this.pos.add(this.vel);
 		}
 		
 		public void test(ArrayList<ArrayList<double[]>> walls, ArrayList<ArrayList<double[]>> goals, Graphics g) {
@@ -596,7 +596,7 @@ public class DrivingQLearning extends State {
 				Vector sightVector = new Vector(1, 0);
 				sightVector.rotateCounterClockwise(curRot + this.rot);
 				sightVector.setMagnitude(100000);//a big number
-				sightVector.addVector(this.pos);
+				sightVector.add(this.pos);
 				
 				double minDist = Integer.MAX_VALUE;
 				Vector minDistVector = null;
@@ -636,9 +636,9 @@ public class DrivingQLearning extends State {
 			double[][] drawnCorners = new double[4][2];
 			for (int i = 0; i < 4; i++) {
 				Vector c = new Vector(corners[i][0], corners[i][1]);
-				c.muli(this.size);
+				c.mul(this.size);
 				c.rotateCounterClockwise(rot);
-				c.addVector(this.pos);
+				c.add(this.pos);
 				drawnCorners[i][0] = c.x;
 				drawnCorners[i][1] = c.y;
 			}
@@ -653,9 +653,9 @@ public class DrivingQLearning extends State {
 			double[][] corners = new double[4][2];
 			for (int i = 0; i < 4; i++) {
 				Vector c = new Vector(this.corners[i][0], this.corners[i][1]);
-				c.muli(this.size);
+				c.mul(this.size);
 				c.rotateCounterClockwise(rot);
-				c.addVector(this.pos);
+				c.add(this.pos);
 				corners[i][0] = c.x;
 				corners[i][1] = c.y;
 			}

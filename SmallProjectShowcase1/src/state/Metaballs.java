@@ -210,7 +210,7 @@ public class Metaballs extends State {
 		
 		public void tick() {
 			//update position
-			this.pos.addVector(vel);
+			this.pos.add(vel);
 			
 			//collision detection
 			if(this.pos.y - this.radius < 0 || this.pos.y + this.radius > MainPanel.HEIGHT) {

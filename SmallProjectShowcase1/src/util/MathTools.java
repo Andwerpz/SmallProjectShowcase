@@ -18,7 +18,7 @@ public class MathTools {
 		return out.getMagnitudeSquared();
 	}
 	
-	public static double dist3D(Point3D a, Point3D b) {
+	public static double dist3D(Vector3D a, Vector3D b) {
 		return new Vector3D(a, b).getMagnitude();
 	}
 
@@ -131,15 +131,15 @@ public class MathTools {
 	// takes in a line, lineP + lineVec, and two points, and return if the two
 	// points are on the same side of the line
 
-	public static boolean pointOnSameSideOfLine(Point lineP, Vector lineVec, Point a, Point b) {
+	public static boolean pointOnSameSideOfLine(Vector lineP, Vector lineVec, Vector a, Vector b) {
 
 		// copy a and b
-		Point p1 = new Point(a);
-		Point p2 = new Point(b);
+		Vector p1 = new Vector(a);
+		Vector p2 = new Vector(b);
 
 		// first offset lineP, p1, and p2 so that lineP is at the origin
-		p1.subtractVector(new Vector(lineP));
-		p2.subtractVector(new Vector(lineP));
+		p1.sub(new Vector(lineP));
+		p2.sub(new Vector(lineP));
 
 		// calculate the line perpendicular to the input line
 		// rotate the line 90 deg
@@ -164,7 +164,7 @@ public class MathTools {
 	// assuming that the points are arranged into a convex hull.
 	// get the centroid of each triangle, then take the weighted average of the
 	// centroids, using the area of each triangle as the weight.
-	public static Point getCentroid(ArrayList<Point> points) {
+	public static Vector getCentroid(ArrayList<Vector> points) {
 		double accumulatedArea = 0.0f;
 		double centerX = 0.0f;
 		double centerY = 0.0f;
@@ -177,11 +177,11 @@ public class MathTools {
 		}
 
 		if (Math.abs(accumulatedArea) < 1E-7f) {
-			return new Point(0, 0);
+			return new Vector(0, 0);
 		}
 
 		accumulatedArea *= 3f;
-		return new Point(centerX / accumulatedArea, centerY / accumulatedArea);
+		return new Vector(centerX / accumulatedArea, centerY / accumulatedArea);
 	}
 
 	// -------------- 3D graphics --------------
@@ -221,7 +221,7 @@ public class MathTools {
 	// also flips the y coordinate vertically about the center of the screen, or
 	// MainPanel.HEIGHT / 2 to correct for inverted y coordinate while
 	// drawing to screen.
-	public static Vector3D scalePoint(Vector3D p) {
+	public static Vector3D scaleVector(Vector3D p) {
 		Vector3D ans = new Vector3D(p);
 
 		ans.x = (p.x + 1d) * (0.5 * MainPanel.WIDTH);
@@ -234,17 +234,17 @@ public class MathTools {
 
 	// calculates the intersection point between a line and a plane
 
-	public static Point3D lineIntersectPlane(Point3D planePoint, Vector3D planeNormal, Point3D lineStart,
-			Point3D lineEnd, double[] tRef) {
+	public static Vector3D lineIntersectPlane(Vector3D planeVector, Vector3D planeNormal, Vector3D lineStart,
+			Vector3D lineEnd, double[] tRef) {
 		planeNormal.normalize();
-		double planeD = -MathTools.dotProduct3D(planeNormal, new Vector3D(planePoint));
+		double planeD = -MathTools.dotProduct3D(planeNormal, new Vector3D(planeVector));
 		double ad = dotProduct3D(planeNormal, new Vector3D(lineStart));
 		double bd = dotProduct3D(planeNormal, new Vector3D(lineEnd));
 		double t = (-planeD - ad) / (bd - ad);
 		Vector3D lineStartToEnd = new Vector3D(lineStart, lineEnd);
 		Vector3D lineIntersect = new Vector3D(lineStartToEnd);
 		lineIntersect.multiply(t);
-		Point3D intersect = new Point3D(lineStart);
+		Vector3D intersect = new Vector3D(lineStart);
 		intersect.addVector(lineIntersect);
 		tRef[0] = t;
 		return intersect;
@@ -260,16 +260,16 @@ public class MathTools {
 	// FIXED yes, it was the bad inputs. When checking the normals to render, always
 	// check in real space.
 
-	public static ArrayList<Point3D[]> triangleClipAgainstPlane(Point3D planePoint, Vector3D planeNormal,
-			Point3D[] inTri, Point[] inTex, ArrayList<Point[]> outTex, double[] inW, ArrayList<double[]> outW) {
+	public static ArrayList<Vector3D[]> triangleClipAgainstPlane(Vector3D planeVector, Vector3D planeNormal,
+			Vector3D[] inTri, Vector[] inTex, ArrayList<Vector[]> outTex, double[] inW, ArrayList<double[]> outW) {
 
 		planeNormal.normalize();
 
-		ArrayList<Point3D> insidePoints = new ArrayList<Point3D>();
-		ArrayList<Point3D> outsidePoints = new ArrayList<Point3D>();
+		ArrayList<Vector3D> insideVectors = new ArrayList<Vector3D>();
+		ArrayList<Vector3D> outsideVectors = new ArrayList<Vector3D>();
 
-		ArrayList<Point> insideTex = new ArrayList<Point>();
-		ArrayList<Point> outsideTex = new ArrayList<Point>();
+		ArrayList<Vector> insideTex = new ArrayList<Vector>();
+		ArrayList<Vector> outsideTex = new ArrayList<Vector>();
 
 		ArrayList<Double> insideW = new ArrayList<Double>();
 		ArrayList<Double> outsideW = new ArrayList<Double>();
@@ -282,29 +282,29 @@ public class MathTools {
 			// returns signed distance from the given triangle vertice to the plane.
 			// if the distance is positive, then the point lies on the "inside" of the plane
 			double dist = planeNormal.x * inTri[i].x + planeNormal.y * inTri[i].y + planeNormal.z * inTri[i].z
-					- dotProduct3D(planeNormal, new Vector3D(planePoint));
+					- dotProduct3D(planeNormal, new Vector3D(planeVector));
 
 			if (dist >= 0) {
-				insidePoints.add(inTri[i]);
+				insideVectors.add(inTri[i]);
 				insideTex.add(inTex[i]);
 				insideW.add(inW[i]);
 			} else {
-				outsidePoints.add(inTri[i]);
+				outsideVectors.add(inTri[i]);
 				outsideTex.add(inTex[i]);
 				outsideW.add(inW[i]);
 			}
 
 		}
 
-		ArrayList<Point3D[]> ans = new ArrayList<Point3D[]>();
+		ArrayList<Vector3D[]> ans = new ArrayList<Vector3D[]>();
 
 		// no points are on the inside of the plane; the triangle ceases to exist.
-		if (insidePoints.size() == 0) {
+		if (insideVectors.size() == 0) {
 			return ans;
 		}
 
 		// the entire triangle is on the "inside" of the plane. No action needed
-		if (insidePoints.size() == 3) {
+		if (insideVectors.size() == 3) {
 			ans.add(inTri);
 			outTex.add(inTex);
 			outW.add(inW);
@@ -313,30 +313,30 @@ public class MathTools {
 
 		// we need to clip the triangle. As only one point lies inside the plane, this
 		// triangle can be clipped into a smaller triangle
-		if (insidePoints.size() == 1) {
+		if (insideVectors.size() == 1) {
 
 			double[] tRef1 = new double[1];
 			double[] tRef2 = new double[1];
 
 			// output 3d space points
-			Point3D[] newTri = new Point3D[3];
-			newTri[0] = insidePoints.get(0);
-			newTri[1] = lineIntersectPlane(planePoint, planeNormal, insidePoints.get(0), outsidePoints.get(0), tRef1);
-			newTri[2] = lineIntersectPlane(planePoint, planeNormal, insidePoints.get(0), outsidePoints.get(1), tRef2);
+			Vector3D[] newTri = new Vector3D[3];
+			newTri[0] = insideVectors.get(0);
+			newTri[1] = lineIntersectPlane(planeVector, planeNormal, insideVectors.get(0), outsideVectors.get(0), tRef1);
+			newTri[2] = lineIntersectPlane(planeVector, planeNormal, insideVectors.get(0), outsideVectors.get(1), tRef2);
 
 			// output texture space points
-			Point[] newTex = new Point[3];
+			Vector[] newTex = new Vector[3];
 
 			Vector ab = new Vector(insideTex.get(0), outsideTex.get(0));
-			ab.muli(tRef1[0]);
+			ab.mul(tRef1[0]);
 			Vector ac = new Vector(insideTex.get(0), outsideTex.get(1));
-			ac.muli(tRef2[0]);
+			ac.mul(tRef2[0]);
 
 			newTex[0] = insideTex.get(0);
-			newTex[1] = new Point(insideTex.get(0));
-			newTex[1].addVector(ab);
-			newTex[2] = new Point(insideTex.get(0));
-			newTex[2].addVector(ac);
+			newTex[1] = new Vector(insideTex.get(0));
+			newTex[1].add(ab);
+			newTex[2] = new Vector(insideTex.get(0));
+			newTex[2].add(ac);
 
 			// output w values
 			double[] newW = new double[3];
@@ -355,43 +355,43 @@ public class MathTools {
 
 		// this triangle needs clipping
 		// as two points lie inside the plane, we need to return 2 new triangles.
-		if (insidePoints.size() == 2) {
+		if (insideVectors.size() == 2) {
 
 			double[] tRef1 = new double[1];
 			double[] tRef2 = new double[2];
 
 			// output new 3d space points
-			Point3D[] newTri1 = new Point3D[3];
-			newTri1[0] = insidePoints.get(0);
-			newTri1[1] = insidePoints.get(1);
-			newTri1[2] = lineIntersectPlane(planePoint, planeNormal, insidePoints.get(0), outsidePoints.get(0), tRef1);
+			Vector3D[] newTri1 = new Vector3D[3];
+			newTri1[0] = insideVectors.get(0);
+			newTri1[1] = insideVectors.get(1);
+			newTri1[2] = lineIntersectPlane(planeVector, planeNormal, insideVectors.get(0), outsideVectors.get(0), tRef1);
 
-			Point3D[] newTri2 = new Point3D[3];
-			newTri2[0] = insidePoints.get(1);
+			Vector3D[] newTri2 = new Vector3D[3];
+			newTri2[0] = insideVectors.get(1);
 			newTri2[1] = newTri1[2];
-			newTri2[2] = lineIntersectPlane(planePoint, planeNormal, insidePoints.get(1), outsidePoints.get(0), tRef2);
+			newTri2[2] = lineIntersectPlane(planeVector, planeNormal, insideVectors.get(1), outsideVectors.get(0), tRef2);
 
 			ans.add(newTri1);
 			ans.add(newTri2);
 
 			// output new texture points
-			Point[] newTex1 = new Point[3];
+			Vector[] newTex1 = new Vector[3];
 
 			Vector ab = new Vector(insideTex.get(0), outsideTex.get(0));
-			ab.muli(tRef1[0]);
+			ab.mul(tRef1[0]);
 			Vector cb = new Vector(insideTex.get(1), outsideTex.get(0));
-			cb.muli(tRef2[0]);
+			cb.mul(tRef2[0]);
 
-			newTex1[0] = new Point(insideTex.get(0));
-			newTex1[1] = new Point(insideTex.get(1));
-			newTex1[2] = new Point(insideTex.get(0));
-			newTex1[2].addVector(ab);
+			newTex1[0] = new Vector(insideTex.get(0));
+			newTex1[1] = new Vector(insideTex.get(1));
+			newTex1[2] = new Vector(insideTex.get(0));
+			newTex1[2].add(ab);
 
-			Point[] newTex2 = new Point[3];
-			newTex2[0] = new Point(insideTex.get(1));
-			newTex2[1] = new Point(newTex1[2]);
-			newTex2[2] = new Point(insideTex.get(1));
-			newTex2[2].addVector(cb);
+			Vector[] newTex2 = new Vector[3];
+			newTex2[0] = new Vector(insideTex.get(1));
+			newTex2[1] = new Vector(newTex1[2]);
+			newTex2[2] = new Vector(insideTex.get(1));
+			newTex2[2].add(cb);
 
 			outTex.add(newTex1);
 			outTex.add(newTex2);
@@ -418,7 +418,7 @@ public class MathTools {
 
 	}
 
-	public static double[][] matrixPointAt(Point3D target, Point3D pos, Vector3D up) {
+	public static double[][] matrixPointAt(Vector3D target, Vector3D pos, Vector3D up) {
 
 		// calculate new forward direction
 		Vector3D newForward = new Vector3D(pos, target);
@@ -473,7 +473,7 @@ public class MathTools {
 	// assumes the camera is pointing in the +z direction
 	// stores the z buffer into the z dimension
 
-	public static Vector3D projectPoint(Vector3D p, double[] wOut) {
+	public static Vector3D projectVector(Vector3D p, double[] wOut) {
 		return multiplyMatrixVector(projectionMatrix, p, wOut);
 	}
 
@@ -500,8 +500,8 @@ public class MathTools {
 		return ans;
 	}
 
-	public static Point3D rotatePoint(Point3D p, double xRot, double yRot, double zRot) {
-		Point3D p1 = new Point3D(p.x, p.y, p.z);
+	public static Vector3D rotateVector(Vector3D p, double xRot, double yRot, double zRot) {
+		Vector3D p1 = new Vector3D(p.x, p.y, p.z);
 
 		rotateX(p1, xRot);
 		rotateY(p1, yRot);
@@ -510,7 +510,7 @@ public class MathTools {
 		return p1;
 	}
 
-	public static void rotateX(Point3D p, double xRot) {
+	public static void rotateX(Vector3D p, double xRot) {
 		double x = p.x;
 		double y = p.y;
 		double z = p.z;
@@ -519,7 +519,7 @@ public class MathTools {
 		p.z = ((y * Math.sin(xRot)) + (z * Math.cos(xRot)));
 	}
 
-	public static void rotateY(Point3D p, double yRot) {
+	public static void rotateY(Vector3D p, double yRot) {
 		double x = p.x;
 		double y = p.y;
 		double z = p.z;
@@ -528,7 +528,7 @@ public class MathTools {
 		p.z = (x * -Math.sin(yRot)) + (z * Math.cos(yRot));
 	}
 
-	public static void rotateZ(Point3D p, double zRot) {
+	public static void rotateZ(Vector3D p, double zRot) {
 		double x = p.x;
 		double y = p.y;
 		double z = p.z;

@@ -186,7 +186,7 @@ public class VerletPhysics extends State {
 		public Particle(Vector pos, Vector vel) {
 			this.pos = new Vector(pos);
 			this.prevPos = new Vector(pos);
-			this.prevPos.subtractVector(vel);
+			this.prevPos.sub(vel);
 		}
 		
 		public void tick() {
@@ -197,10 +197,10 @@ public class VerletPhysics extends State {
 			
 			Vector nextPos = new Vector(pos);
 			Vector vel = new Vector(prevPos, pos);
-			vel.muli(1);
-			nextPos.addVector(vel);
+			vel.mul(1);
+			nextPos.add(vel);
 			
-			nextPos.addVector(gravity);
+			nextPos.add(gravity);
 			prevPos = new Vector(this.pos);
 			this.pos = nextPos;
 			
@@ -259,16 +259,16 @@ public class VerletPhysics extends State {
 			if(!a.pinned && !b.pinned) {
 				aToB.setMagnitude((diff / 2) * strength);
 				bToA.setMagnitude((diff / 2) * strength);
-				a.pos.addVector(aToB);
-				b.pos.addVector(bToA);
+				a.pos.add(aToB);
+				b.pos.add(bToA);
 			}
 			else if(!b.pinned) {
 				bToA.setMagnitude(diff * strength);
-				b.pos.addVector(bToA);
+				b.pos.add(bToA);
 			}
 			else if(!a.pinned){
 				aToB.setMagnitude(diff * strength);
-				a.pos.addVector(aToB);
+				a.pos.add(aToB);
 			}
 			
 			

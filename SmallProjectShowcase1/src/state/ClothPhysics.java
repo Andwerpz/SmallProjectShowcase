@@ -16,7 +16,6 @@ import state.VerletPhysics.Particle;
 import state.VerletPhysics.Spring;
 import util.GraphicsTools;
 import util.MathTools;
-import util.Point3D;
 import util.Vector;
 import util.Vector3D;
 
@@ -461,8 +460,8 @@ public class ClothPhysics extends State {
 		public Vector3D projectPoint(double[] zBuffer) {
 			Vector3D drawn = MathTools.cameraTransform(pos, camera, xRot, yRot);
 			
-			drawn = MathTools.projectPoint(drawn, zBuffer);
-			drawn = MathTools.scalePoint(drawn);
+			drawn = MathTools.projectVector(drawn, zBuffer);
+			drawn = MathTools.scaleVector(drawn);
 
 			return drawn;
 		}
@@ -610,16 +609,16 @@ public class ClothPhysics extends State {
 			double[] bz = {0};
 			double[] cz = {0};
 			
-			p[0] = MathTools.projectPoint(p[0], az);
-			p[1] = MathTools.projectPoint(p[1], bz);
-			p[2] = MathTools.projectPoint(p[2], cz);
+			p[0] = MathTools.projectVector(p[0], az);
+			p[1] = MathTools.projectVector(p[1], bz);
+			p[2] = MathTools.projectVector(p[2], cz);
 			
 			zBuffer = (az[0] + bz[0] + cz[0]) / 3d; 
 			
 			if(zBuffer > 0) {
-				p[0] = MathTools.scalePoint(p[0]);
-				p[1] = MathTools.scalePoint(p[1]);
-				p[2] = MathTools.scalePoint(p[2]);
+				p[0] = MathTools.scaleVector(p[0]);
+				p[1] = MathTools.scaleVector(p[1]);
+				p[2] = MathTools.scaleVector(p[2]);
 				
 				return 1;
 			}
