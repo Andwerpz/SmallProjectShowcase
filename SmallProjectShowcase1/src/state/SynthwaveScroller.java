@@ -44,7 +44,7 @@ import main.MainPanel;
 import util.GraphicsTools;
 import util.MathTools;
 import util.PerlinNoise;
-import util.Vector3D;
+import util.Vec3;
 import util.WavFile;
 
 public class SynthwaveScroller extends State {
@@ -69,7 +69,7 @@ public class SynthwaveScroller extends State {
 	double sun_line_start_counter = 0;
 
 	// LANDSCAPE
-	Vector3D landscape_camera_pos = new Vector3D(0, 150, 150);
+	Vec3 landscape_camera_pos = new Vec3(0, 150, 150);
 	double landscape_camera_start_z = 150;
 	double landscape_camera_rot_x = Math.toRadians(-20);
 	double landscape_camera_rot_y = 0;
@@ -201,7 +201,7 @@ public class SynthwaveScroller extends State {
 		
 		
 		// calc landscape
-		Vector3D landscape_cur_camera_pos = new Vector3D(landscape_camera_pos);
+		Vec3 landscape_cur_camera_pos = new Vec3(landscape_camera_pos);
 		double landscape_total_width = landscape_cell_size * (landscape_width - 1);
 		for (int i = 0; i < landscape_length; i++) {
 			for (int j = 0; j < landscape_width; j++) {
@@ -219,10 +219,10 @@ public class SynthwaveScroller extends State {
 				double[] w = new double[1];
 
 				// transform to screen space
-				Vector3D camera_space_vec = MathTools.cameraTransform(new Vector3D(x, y, z), landscape_cur_camera_pos,
+				Vec3 camera_space_vec = MathTools.cameraTransform(new Vec3(x, y, z), landscape_cur_camera_pos,
 						landscape_camera_rot_x, landscape_camera_rot_y);
-				Vector3D projected_vec = MathTools.projectVector(camera_space_vec, w);
-				Vector3D screen_space_vec = MathTools.scaleVector(projected_vec);
+				Vec3 projected_vec = MathTools.projectVector(camera_space_vec, w);
+				Vec3 screen_space_vec = MathTools.scaleVector(projected_vec);
 
 				// save
 				landscape_screen_space[i][j][0] = screen_space_vec.x;

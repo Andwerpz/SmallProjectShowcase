@@ -15,7 +15,6 @@ import input.SliderButton;
 import main.MainPanel;
 import util.GraphicsTools;
 import util.MathTools;
-import util.Vector;
 
 public class ImplicitGraph extends State{
 	

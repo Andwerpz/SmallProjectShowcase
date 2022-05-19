@@ -12,7 +12,7 @@ import input.Button;
 import input.InputManager;
 import input.TextField;
 import util.TextBox;
-import util.Vector;
+import util.Vec2;
 
 public class TileEditor extends State {
 
@@ -23,7 +23,7 @@ public class TileEditor extends State {
 	int tileSize = 30;
 	int editorSize = 200;
 
-	Vector offset = new Vector(0, 0);
+	Vec2 offset = new Vec2(0, 0);
 
 	java.awt.Point prevMouse = new java.awt.Point(0, 0);
 	boolean pressedRight = false;
@@ -67,7 +67,7 @@ public class TileEditor extends State {
 		int dy = mouse2.y - prevMouse.y;
 
 		if (pressedLeft) {
-			offset.add(new Vector(dx, dy));
+			offset.addi(new Vec2(dx, dy));
 		}
 
 		prevMouse = new java.awt.Point(mouse2.x, mouse2.y);

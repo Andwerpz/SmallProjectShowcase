@@ -16,17 +16,17 @@ import state.VerletPhysics.Particle;
 import state.VerletPhysics.Spring;
 import util.GraphicsTools;
 import util.MathTools;
-import util.Vector;
-import util.Vector3D;
+import util.Vec2;
+import util.Vec3;
 
 public class ClothPhysics extends State {
 	
 	InputManager im;
 	
-	Vector3D gravity = new Vector3D(0, -0.1, 0);
-	Vector3D light = new Vector3D(0, -1, 0);
+	Vec3 gravity = new Vec3(0, -0.1, 0);
+	Vec3 light = new Vec3(0, -1, 0);
 	
-	Vector3D camera = new Vector3D(0, 450, 0);
+	Vec3 camera = new Vec3(0, 450, 0);
 	double xRot = 0.25;
 	double yRot = 0;
 	
@@ -77,7 +77,7 @@ public class ClothPhysics extends State {
 				int x = i * tileSize - tileSize * 6;
 				int z = j * tileSize - tileSize * 6;
 				int y = 0;
-				ground[i][j] = new Particle(new Vector3D(x, y, z));
+				ground[i][j] = new Particle(new Vec3(x, y, z));
 			}
 		}
 		
@@ -100,7 +100,7 @@ public class ClothPhysics extends State {
 				int x = i * increment;
 				int z = j * increment;
 				int y = 400;
-				cloth[i][j] = new Particle(new Vector3D(x, y, z));
+				cloth[i][j] = new Particle(new Vec3(x, y, z));
 				particles.add(cloth[i][j]);
 				
 				//structural springs
@@ -166,22 +166,25 @@ public class ClothPhysics extends State {
 		
 		double moveSpeed = 6;
 		
-		Vector3D vLookDir = new Vector3D(0, 0, 1);
+		Vec3 vLookDir = new Vec3(0, 0, 1);
 		vLookDir.rotateX(xRot);	vLookDir.rotateY(yRot);
 		
-		Vector3D forwardDir = new Vector3D(vLookDir);
-		forwardDir.setMagnitude(moveSpeed);
+		Vec3 forwardDir = new Vec3(vLookDir);
+		forwardDir.normalize();
+		forwardDir.muli(moveSpeed);
 		
-		Vector left = new Vector(forwardDir.x, forwardDir.z);
-		left.rotateCounterClockwise(Math.toRadians(90));
-		left.setMagnitude(moveSpeed);
+		Vec2 left = new Vec2(forwardDir.x, forwardDir.z);
+		left.rotate(Math.toRadians(90));
+		left.normalize();
+		left.muli(moveSpeed);
 		
 		if(this.left) {
-			camera.addVector(new Vector3D(left.x, 0, left.y));
+			camera.addi(new Vec3(left.x, 0, left.y));
 		}
 		if(this.right) {
-			left.setMagnitude(-moveSpeed);
-			camera.addVector(new Vector3D(left.x, 0, left.y));
+			left.setLength(-moveSpeed);
+			
+			camera.addi(new Vec3(left.x, 0, left.y));
 		}
 		if(this.up) {
 			camera.y += moveSpeed;
@@ -191,22 +194,22 @@ public class ClothPhysics extends State {
 		}
 		
 		if(this.forward) {
-			camera.addVector(forwardDir);
+			camera.addi(forwardDir);
 		}
 		
 		if(this.backward) {
-			forwardDir.setMagnitude(-moveSpeed);
-			camera.addVector(forwardDir);
+			forwardDir.setLength(-moveSpeed);
+			camera.addi(forwardDir);
 		}
 		
 		for(Particle p : particles) {
 			p.tick();
 			
 			//spheres
-			p.constrain(new Vector3D(350, 150, 150), 50);
-			p.constrain(new Vector3D(150, 150, 350), 50);
-			p.constrain(new Vector3D(150, 150, 150), 50);
-			p.constrain(new Vector3D(350, 150, 350), 50);
+			p.constrain(new Vec3(350, 150, 150), 50);
+			p.constrain(new Vec3(150, 150, 350), 50);
+			p.constrain(new Vec3(150, 150, 150), 50);
+			p.constrain(new Vec3(350, 150, 350), 50);
 		}
 		
 		for(int i = 0; i < this.springIterations; i++) {
@@ -231,9 +234,9 @@ public class ClothPhysics extends State {
 				double[] bz = {0};
 				double[] cz = {0};
 				
-				Vector3D a = tri[0].projectPoint(az);
-				Vector3D b = tri[1].projectPoint(bz);
-				Vector3D c = tri[2].projectPoint(cz);
+				Vec3 a = tri[0].projectPoint(az);
+				Vec3 b = tri[1].projectPoint(bz);
+				Vec3 c = tri[2].projectPoint(cz);
 				
 				if(az[0] > 0 && bz[0] > 0 && cz[0] > 0) {
 					int[] x = {(int) a.x, (int) b.x, (int) c.x};
@@ -406,7 +409,7 @@ public class ClothPhysics extends State {
 	
 	class Particle {
 		
-		Vector3D pos, prevPos;
+		Vec3 pos, prevPos;
 		boolean pinned = false;	//does this particle move
 		
 		double radius = 2;
@@ -414,15 +417,15 @@ public class ClothPhysics extends State {
 		double friction = 1;
 		double groundFriction = 0.7;
 		
-		public Particle(Vector3D pos) {
-			this.pos = new Vector3D(pos);
-			this.prevPos = new Vector3D(pos);
+		public Particle(Vec3 pos) {
+			this.pos = new Vec3(pos);
+			this.prevPos = new Vec3(pos);
 		}
 		
-		public Particle(Vector3D pos, Vector3D vel) {
-			this.pos = new Vector3D(pos);
-			this.prevPos = new Vector3D(pos);
-			this.prevPos.subtractVector(vel);
+		public Particle(Vec3 pos, Vec3 vel) {
+			this.pos = new Vec3(pos);
+			this.prevPos = new Vec3(pos);
+			this.prevPos.subi(vel);
 		}
 		
 		public void tick() {
@@ -431,13 +434,13 @@ public class ClothPhysics extends State {
 				return;
 			}
 			
-			Vector3D nextPos = new Vector3D(pos);
-			Vector3D vel = new Vector3D(prevPos, pos);
-			vel.multiply(this.pos.y < 0.001? this.groundFriction : this.friction);
-			nextPos.addVector(vel);
+			Vec3 nextPos = new Vec3(pos);
+			Vec3 vel = new Vec3(prevPos, pos);
+			vel.muli(this.pos.y < 0.001? this.groundFriction : this.friction);
+			nextPos.addi(vel);
 			
-			nextPos.addVector(gravity);
-			prevPos = new Vector3D(this.pos);
+			nextPos.addi(gravity);
+			prevPos = new Vec3(this.pos);
 			this.pos = nextPos;
 			
 			constrain();
@@ -445,7 +448,7 @@ public class ClothPhysics extends State {
 		
 		public void draw(Graphics g) {
 			double[] zBuffer = {0};
-			Vector3D drawn = this.projectPoint(zBuffer);
+			Vec3 drawn = this.projectPoint(zBuffer);
 			
 			if(zBuffer[0] > 0) {
 				g.fillOval(
@@ -457,8 +460,8 @@ public class ClothPhysics extends State {
 		}
 		
 		//takes point in 3D space, and projects it to the screen given camera info
-		public Vector3D projectPoint(double[] zBuffer) {
-			Vector3D drawn = MathTools.cameraTransform(pos, camera, xRot, yRot);
+		public Vec3 projectPoint(double[] zBuffer) {
+			Vec3 drawn = MathTools.cameraTransform(pos, camera, xRot, yRot);
 			
 			drawn = MathTools.projectVector(drawn, zBuffer);
 			drawn = MathTools.scaleVector(drawn);
@@ -473,12 +476,12 @@ public class ClothPhysics extends State {
 			}
 		}
 		
-		public void constrain(Vector3D center, double radius) {
+		public void constrain(Vec3 center, double radius) {
 			double dist = MathTools.dist3D(center, this.pos);
 			if(dist < radius) {
-				Vector3D toSurface = new Vector3D(center, this.pos);
-				toSurface.setMagnitude(radius - dist);
-				this.pos.addVector(toSurface);
+				Vec3 toSurface = new Vec3(center, this.pos);
+				toSurface.setLength(radius - dist);
+				this.pos.addi(toSurface);
 			}
 		}
 		
@@ -506,22 +509,22 @@ public class ClothPhysics extends State {
 			double dist = MathTools.dist3D(a.pos, b.pos);
 			double diff = dist - length;
 			
-			Vector3D aToB = new Vector3D(a.pos, b.pos);
-			Vector3D bToA = new Vector3D(b.pos, a.pos);
+			Vec3 aToB = new Vec3(a.pos, b.pos);
+			Vec3 bToA = new Vec3(b.pos, a.pos);
 			
 			if(!a.pinned && !b.pinned) {
-				aToB.setMagnitude((diff / 2) * strength);
-				bToA.setMagnitude((diff / 2) * strength);
-				a.pos.addVector(aToB);
-				b.pos.addVector(bToA);
+				aToB.setLength((diff / 2) * strength);
+				bToA.setLength((diff / 2) * strength);
+				a.pos.addi(aToB);
+				b.pos.addi(bToA);
 			}
 			else if(!b.pinned) {
-				bToA.setMagnitude(diff * strength);
-				b.pos.addVector(bToA);
+				bToA.setLength(diff * strength);
+				b.pos.addi(bToA);
 			}
 			else if(!a.pinned){
-				aToB.setMagnitude(diff * strength);
-				a.pos.addVector(aToB);
+				aToB.setLength(diff * strength);
+				a.pos.addi(aToB);
 			}
 			
 		}
@@ -542,8 +545,8 @@ public class ClothPhysics extends State {
 			double[] az = {0};
 			double[] bz = {0};
 			
-			Vector3D aDrawn = a.projectPoint(az);
-			Vector3D bDrawn = b.projectPoint(bz);
+			Vec3 aDrawn = a.projectPoint(az);
+			Vec3 bDrawn = b.projectPoint(bz);
 			
 			if(az[0] > 0 && bz[0] > 0) {
 				g.drawLine(
@@ -558,12 +561,12 @@ public class ClothPhysics extends State {
 	
 	class Triangle {
 		
-		Vector3D[] p;
+		Vec3[] p;
 		double zBuffer = 0;
 		double brightness = 0;
 		
-		public Triangle(Vector3D a, Vector3D b, Vector3D c) {
-			this.p = new Vector3D[] {new Vector3D(a), new Vector3D(b), new Vector3D(c)};
+		public Triangle(Vec3 a, Vec3 b, Vec3 c) {
+			this.p = new Vec3[] {new Vec3(a), new Vec3(b), new Vec3(c)};
 		}
 		
 		//only call if already projected
@@ -588,14 +591,14 @@ public class ClothPhysics extends State {
 		//return -1 if failed
 		public int project() {
 			
-			Vector3D v1 = new Vector3D(p[0], p[2]);
-			Vector3D v2 = new Vector3D(p[0], p[1]);
+			Vec3 v1 = new Vec3(p[0], p[2]);
+			Vec3 v2 = new Vec3(p[0], p[1]);
 			
-			Vector3D cross = MathTools.crossProduct(v1, v2);
+			Vec3 cross = MathTools.crossProduct(v1, v2);
 			
 			cross.normalize();
 			
-			brightness = MathTools.dotProduct3D(cross, light);
+			brightness = MathTools.dotProduct(cross, light);
 			
 			p[0] = MathTools.cameraTransform(p[0], camera, xRot, yRot);
 			p[1] = MathTools.cameraTransform(p[1], camera, xRot, yRot);

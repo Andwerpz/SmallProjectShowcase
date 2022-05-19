@@ -13,13 +13,13 @@ public class MathTools {
 		return Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
 	}
 
-	public static double distSq(Vector a, Vector b) {
-		Vector out = new Vector(a, b);
-		return out.getMagnitudeSquared();
+	public static double distSq(Vec2 a, Vec2 b) {
+		Vec2 out = b.sub(a);
+		return out.lengthSq();
 	}
 	
-	public static double dist3D(Vector3D a, Vector3D b) {
-		return new Vector3D(a, b).getMagnitude();
+	public static double dist3D(Vec3 a, Vec3 b) {
+		return new Vec3(a, b).length();
 	}
 
 	public static double slope(double x1, double y1, double x2, double y2) {
@@ -28,8 +28,8 @@ public class MathTools {
 		return dx / dy;
 	}
 
-	public static double radianAngleBetweenVectors(Vector a, Vector b) {
-		return Math.acos(dotProduct(a, b) / (a.getMagnitude() * b.getMagnitude()));
+	public static double radianAngleBetweenVectors(Vec2 a, Vec2 b) {
+		return Math.acos(dotProduct(a, b) / (a.length() * b.length()));
 	}
 
 	// --------------- Stats -----------
@@ -76,29 +76,29 @@ public class MathTools {
 
 	// -------------- Linear Algebra -----------
 
-	public static double dotProduct(Vector a, Vector b) {
+	public static double dotProduct(Vec2 a, Vec2 b) {
 		return a.x * b.x + a.y * b.y;
 	}
 
-	public static double dotProduct3D(Vector3D a, Vector3D b) {
+	public static double dotProduct(Vec3 a, Vec3 b) {
 		return a.x * b.x + a.y * b.y + a.z * b.z;
 	}
 
-	public static double crossProduct(Vector a, Vector b) {
+	public static double crossProduct(Vec2 a, Vec2 b) {
 		return a.x * b.y - a.y * b.x;
 	}
 
-	public static Vector crossProduct(Vector a, double s) {
-		return new Vector(s * a.y, -s * a.x);
+	public static Vec2 crossProduct(Vec2 a, double s) {
+		return new Vec2(s * a.y, -s * a.x);
 	}
 
-	public static Vector crossProduct(double s, Vector a) {
-		return new Vector(-s * a.y, s * a.x);
+	public static Vec2 crossProduct(double s, Vec2 a) {
+		return new Vec2(-s * a.y, s * a.x);
 	}
 
-	public static Vector3D crossProduct(Vector3D a, Vector3D b) {
+	public static Vec3 crossProduct(Vec3 a, Vec3 b) {
 
-		Vector3D normal = new Vector3D(0, 0, 0);
+		Vec3 normal = new Vec3(0, 0, 0);
 
 		normal.x = a.y * b.z - a.z * b.y;
 		normal.y = a.z * b.x - a.x * b.z;
@@ -110,7 +110,7 @@ public class MathTools {
 
 	// takes in two line segments, and returns a vector pointing to where they
 	// intersect, null otherwise
-	public static Vector line_lineCollision(double x1, double y1, double x2, double y2, double x3, double y3, double x4,
+	public static Vec2 line_lineCollision(double x1, double y1, double x2, double y2, double x3, double y3, double x4,
 			double y4) {
 		// calculate the distance to intersection point
 		double uA = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1));
@@ -123,7 +123,7 @@ public class MathTools {
 			double intersectionX = x1 + (uA * (x2 - x1));
 			double intersectionY = y1 + (uA * (y2 - y1));
 
-			return new Vector(intersectionX, intersectionY);
+			return new Vec2(intersectionX, intersectionY);
 		}
 		return null;
 	}
@@ -131,25 +131,25 @@ public class MathTools {
 	// takes in a line, lineP + lineVec, and two points, and return if the two
 	// points are on the same side of the line
 
-	public static boolean pointOnSameSideOfLine(Vector lineP, Vector lineVec, Vector a, Vector b) {
+	public static boolean pointOnSameSideOfLine(Vec2 lineP, Vec2 lineVec, Vec2 a, Vec2 b) {
 
 		// copy a and b
-		Vector p1 = new Vector(a);
-		Vector p2 = new Vector(b);
+		Vec2 p1 = new Vec2(a);
+		Vec2 p2 = new Vec2(b);
 
 		// first offset lineP, p1, and p2 so that lineP is at the origin
-		p1.sub(new Vector(lineP));
-		p2.sub(new Vector(lineP));
+		p1.subi(lineP);
+		p2.subi(lineP);
 
 		// calculate the line perpendicular to the input line
 		// rotate the line 90 deg
-		Vector perpendicular = new Vector(lineVec.y, -lineVec.x);
+		Vec2 perpendicular = new Vec2(lineVec.y, -lineVec.x);
 
 		// now take dot product of the perpendicular vector with both points
 		// if both dot products are negative or positive, then the points are on the
 		// same side of the line
-		Vector v1 = new Vector(p1);
-		Vector v2 = new Vector(p2);
+		Vec2 v1 = new Vec2(p1);
+		Vec2 v2 = new Vec2(p2);
 		double d1 = MathTools.dotProduct(perpendicular, v1);
 		double d2 = MathTools.dotProduct(perpendicular, v2);
 
@@ -164,7 +164,7 @@ public class MathTools {
 	// assuming that the points are arranged into a convex hull.
 	// get the centroid of each triangle, then take the weighted average of the
 	// centroids, using the area of each triangle as the weight.
-	public static Vector getCentroid(ArrayList<Vector> points) {
+	public static Vec2 getCentroid(ArrayList<Vec2> points) {
 		double accumulatedArea = 0.0f;
 		double centerX = 0.0f;
 		double centerY = 0.0f;
@@ -177,11 +177,11 @@ public class MathTools {
 		}
 
 		if (Math.abs(accumulatedArea) < 1E-7f) {
-			return new Vector(0, 0);
+			return new Vec2(0, 0);
 		}
 
 		accumulatedArea *= 3f;
-		return new Vector(centerX / accumulatedArea, centerY / accumulatedArea);
+		return new Vec2(centerX / accumulatedArea, centerY / accumulatedArea);
 	}
 
 	// -------------- 3D graphics --------------
@@ -205,8 +205,8 @@ public class MathTools {
 	// assumes default camera position is the +z axis
 	// transforms into camera space, with the point relative to a camera facing down
 	// the z-axis.
-	public static Vector3D cameraTransform(Vector3D p, Vector3D camera, double xRot, double yRot) {
-		Vector3D ans = new Vector3D(p);
+	public static Vec3 cameraTransform(Vec3 p, Vec3 camera, double xRot, double yRot) {
+		Vec3 ans = new Vec3(p);
 		ans.x -= camera.x;
 		ans.y -= camera.y;
 		ans.z -= camera.z;
@@ -221,8 +221,8 @@ public class MathTools {
 	// also flips the y coordinate vertically about the center of the screen, or
 	// MainPanel.HEIGHT / 2 to correct for inverted y coordinate while
 	// drawing to screen.
-	public static Vector3D scaleVector(Vector3D p) {
-		Vector3D ans = new Vector3D(p);
+	public static Vec3 scaleVector(Vec3 p) {
+		Vec3 ans = new Vec3(p);
 
 		ans.x = (p.x + 1d) * (0.5 * MainPanel.WIDTH);
 		ans.y = (p.y + 1d) * (0.5 * MainPanel.HEIGHT);
@@ -234,18 +234,18 @@ public class MathTools {
 
 	// calculates the intersection point between a line and a plane
 
-	public static Vector3D lineIntersectPlane(Vector3D planeVector, Vector3D planeNormal, Vector3D lineStart,
-			Vector3D lineEnd, double[] tRef) {
+	public static Vec3 lineIntersectPlane(Vec3 planeVector, Vec3 planeNormal, Vec3 lineStart,
+			Vec3 lineEnd, double[] tRef) {
 		planeNormal.normalize();
-		double planeD = -MathTools.dotProduct3D(planeNormal, new Vector3D(planeVector));
-		double ad = dotProduct3D(planeNormal, new Vector3D(lineStart));
-		double bd = dotProduct3D(planeNormal, new Vector3D(lineEnd));
+		double planeD = -MathTools.dotProduct(planeNormal, new Vec3(planeVector));
+		double ad = dotProduct(planeNormal, new Vec3(lineStart));
+		double bd = dotProduct(planeNormal, new Vec3(lineEnd));
 		double t = (-planeD - ad) / (bd - ad);
-		Vector3D lineStartToEnd = new Vector3D(lineStart, lineEnd);
-		Vector3D lineIntersect = new Vector3D(lineStartToEnd);
-		lineIntersect.multiply(t);
-		Vector3D intersect = new Vector3D(lineStart);
-		intersect.addVector(lineIntersect);
+		Vec3 lineStartToEnd = new Vec3(lineStart, lineEnd);
+		Vec3 lineIntersect = new Vec3(lineStartToEnd);
+		lineIntersect.muli(t);
+		Vec3 intersect = new Vec3(lineStart);
+		intersect.addi(lineIntersect);
 		tRef[0] = t;
 		return intersect;
 	}
@@ -260,29 +260,29 @@ public class MathTools {
 	// FIXED yes, it was the bad inputs. When checking the normals to render, always
 	// check in real space.
 
-	public static ArrayList<Vector3D[]> triangleClipAgainstPlane(Vector3D planeVector, Vector3D planeNormal,
-			Vector3D[] inTri, Vector[] inTex, ArrayList<Vector[]> outTex, double[] inW, ArrayList<double[]> outW) {
+	public static ArrayList<Vec3[]> triangleClipAgainstPlane(Vec3 planeVector, Vec3 planeNormal,
+			Vec3[] inTri, Vec2[] inTex, ArrayList<Vec2[]> outTex, double[] inW, ArrayList<double[]> outW) {
 
 		planeNormal.normalize();
 
-		ArrayList<Vector3D> insideVectors = new ArrayList<Vector3D>();
-		ArrayList<Vector3D> outsideVectors = new ArrayList<Vector3D>();
+		ArrayList<Vec3> insideVectors = new ArrayList<Vec3>();
+		ArrayList<Vec3> outsideVectors = new ArrayList<Vec3>();
 
-		ArrayList<Vector> insideTex = new ArrayList<Vector>();
-		ArrayList<Vector> outsideTex = new ArrayList<Vector>();
+		ArrayList<Vec2> insideTex = new ArrayList<Vec2>();
+		ArrayList<Vec2> outsideTex = new ArrayList<Vec2>();
 
 		ArrayList<Double> insideW = new ArrayList<Double>();
 		ArrayList<Double> outsideW = new ArrayList<Double>();
 
 		for (int i = 0; i < 3; i++) {
 
-			Vector3D n = new Vector3D(inTri[i]);
+			Vec3 n = new Vec3(inTri[i]);
 			n.normalize();
 
 			// returns signed distance from the given triangle vertice to the plane.
 			// if the distance is positive, then the point lies on the "inside" of the plane
 			double dist = planeNormal.x * inTri[i].x + planeNormal.y * inTri[i].y + planeNormal.z * inTri[i].z
-					- dotProduct3D(planeNormal, new Vector3D(planeVector));
+					- dotProduct(planeNormal, new Vec3(planeVector));
 
 			if (dist >= 0) {
 				insideVectors.add(inTri[i]);
@@ -296,7 +296,7 @@ public class MathTools {
 
 		}
 
-		ArrayList<Vector3D[]> ans = new ArrayList<Vector3D[]>();
+		ArrayList<Vec3[]> ans = new ArrayList<Vec3[]>();
 
 		// no points are on the inside of the plane; the triangle ceases to exist.
 		if (insideVectors.size() == 0) {
@@ -319,23 +319,23 @@ public class MathTools {
 			double[] tRef2 = new double[1];
 
 			// output 3d space points
-			Vector3D[] newTri = new Vector3D[3];
+			Vec3[] newTri = new Vec3[3];
 			newTri[0] = insideVectors.get(0);
 			newTri[1] = lineIntersectPlane(planeVector, planeNormal, insideVectors.get(0), outsideVectors.get(0), tRef1);
 			newTri[2] = lineIntersectPlane(planeVector, planeNormal, insideVectors.get(0), outsideVectors.get(1), tRef2);
 
 			// output texture space points
-			Vector[] newTex = new Vector[3];
+			Vec2[] newTex = new Vec2[3];
 
-			Vector ab = new Vector(insideTex.get(0), outsideTex.get(0));
-			ab.mul(tRef1[0]);
-			Vector ac = new Vector(insideTex.get(0), outsideTex.get(1));
-			ac.mul(tRef2[0]);
+			Vec2 ab = new Vec2(insideTex.get(0), outsideTex.get(0));
+			ab.muli(tRef1[0]);
+			Vec2 ac = new Vec2(insideTex.get(0), outsideTex.get(1));
+			ac.muli(tRef2[0]);
 
 			newTex[0] = insideTex.get(0);
-			newTex[1] = new Vector(insideTex.get(0));
+			newTex[1] = new Vec2(insideTex.get(0));
 			newTex[1].add(ab);
-			newTex[2] = new Vector(insideTex.get(0));
+			newTex[2] = new Vec2(insideTex.get(0));
 			newTex[2].add(ac);
 
 			// output w values
@@ -361,12 +361,12 @@ public class MathTools {
 			double[] tRef2 = new double[2];
 
 			// output new 3d space points
-			Vector3D[] newTri1 = new Vector3D[3];
+			Vec3[] newTri1 = new Vec3[3];
 			newTri1[0] = insideVectors.get(0);
 			newTri1[1] = insideVectors.get(1);
 			newTri1[2] = lineIntersectPlane(planeVector, planeNormal, insideVectors.get(0), outsideVectors.get(0), tRef1);
 
-			Vector3D[] newTri2 = new Vector3D[3];
+			Vec3[] newTri2 = new Vec3[3];
 			newTri2[0] = insideVectors.get(1);
 			newTri2[1] = newTri1[2];
 			newTri2[2] = lineIntersectPlane(planeVector, planeNormal, insideVectors.get(1), outsideVectors.get(0), tRef2);
@@ -375,22 +375,22 @@ public class MathTools {
 			ans.add(newTri2);
 
 			// output new texture points
-			Vector[] newTex1 = new Vector[3];
+			Vec2[] newTex1 = new Vec2[3];
 
-			Vector ab = new Vector(insideTex.get(0), outsideTex.get(0));
+			Vec2 ab = new Vec2(insideTex.get(0), outsideTex.get(0));
 			ab.mul(tRef1[0]);
-			Vector cb = new Vector(insideTex.get(1), outsideTex.get(0));
+			Vec2 cb = new Vec2(insideTex.get(1), outsideTex.get(0));
 			cb.mul(tRef2[0]);
 
-			newTex1[0] = new Vector(insideTex.get(0));
-			newTex1[1] = new Vector(insideTex.get(1));
-			newTex1[2] = new Vector(insideTex.get(0));
+			newTex1[0] = new Vec2(insideTex.get(0));
+			newTex1[1] = new Vec2(insideTex.get(1));
+			newTex1[2] = new Vec2(insideTex.get(0));
 			newTex1[2].add(ab);
 
-			Vector[] newTex2 = new Vector[3];
-			newTex2[0] = new Vector(insideTex.get(1));
-			newTex2[1] = new Vector(newTex1[2]);
-			newTex2[2] = new Vector(insideTex.get(1));
+			Vec2[] newTex2 = new Vec2[3];
+			newTex2[0] = new Vec2(insideTex.get(1));
+			newTex2[1] = new Vec2(newTex1[2]);
+			newTex2[2] = new Vec2(insideTex.get(1));
 			newTex2[2].add(cb);
 
 			outTex.add(newTex1);
@@ -418,20 +418,20 @@ public class MathTools {
 
 	}
 
-	public static double[][] matrixPointAt(Vector3D target, Vector3D pos, Vector3D up) {
+	public static double[][] matrixPointAt(Vec3 target, Vec3 pos, Vec3 up) {
 
 		// calculate new forward direction
-		Vector3D newForward = new Vector3D(pos, target);
+		Vec3 newForward = new Vec3(pos, target);
 		newForward.normalize();
 
 		// calculate new up direction
-		Vector3D a = new Vector3D(newForward);
-		a.multiply(dotProduct3D(up, newForward));
-		Vector3D newUp = new Vector3D(a, up);
+		Vec3 a = new Vec3(newForward);
+		a.muli(dotProduct(up, newForward));
+		Vec3 newUp = new Vec3(a, up);
 		newUp.normalize();
 
 		// calculate new right direction
-		Vector3D newRight = crossProduct(newUp, newForward);
+		Vec3 newRight = crossProduct(newUp, newForward);
 
 		double[][] mat = new double[][] { { newRight.x, newRight.y, newRight.z, 0 }, { newUp.x, newUp.y, newUp.z, 0 },
 				{ newForward.x, newForward.y, newForward.z, 0 }, { pos.x, pos.y, pos.z, 1 } };
@@ -473,7 +473,7 @@ public class MathTools {
 	// assumes the camera is pointing in the +z direction
 	// stores the z buffer into the z dimension
 
-	public static Vector3D projectVector(Vector3D p, double[] wOut) {
+	public static Vec3 projectVector(Vec3 p, double[] wOut) {
 		return multiplyMatrixVector(projectionMatrix, p, wOut);
 	}
 
@@ -481,8 +481,8 @@ public class MathTools {
 
 	// it's implied that the 4th element of the vector is 1
 
-	public static Vector3D multiplyMatrixVector(double[][] mat, Vector3D p, double[] wOut) {
-		Vector3D ans = new Vector3D(0, 0, 0);
+	public static Vec3 multiplyMatrixVector(double[][] mat, Vec3 p, double[] wOut) {
+		Vec3 ans = new Vec3(0, 0, 0);
 
 		ans.x = p.x * mat[0][0] + p.y * mat[1][0] + p.z * mat[2][0] + mat[3][0];
 		ans.y = p.x * mat[0][1] + p.y * mat[1][1] + p.z * mat[2][1] + mat[3][1];
@@ -500,8 +500,8 @@ public class MathTools {
 		return ans;
 	}
 
-	public static Vector3D rotateVector(Vector3D p, double xRot, double yRot, double zRot) {
-		Vector3D p1 = new Vector3D(p.x, p.y, p.z);
+	public static Vec3 rotateVector(Vec3 p, double xRot, double yRot, double zRot) {
+		Vec3 p1 = new Vec3(p.x, p.y, p.z);
 
 		rotateX(p1, xRot);
 		rotateY(p1, yRot);
@@ -510,7 +510,7 @@ public class MathTools {
 		return p1;
 	}
 
-	public static void rotateX(Vector3D p, double xRot) {
+	public static void rotateX(Vec3 p, double xRot) {
 		double x = p.x;
 		double y = p.y;
 		double z = p.z;
@@ -519,7 +519,7 @@ public class MathTools {
 		p.z = ((y * Math.sin(xRot)) + (z * Math.cos(xRot)));
 	}
 
-	public static void rotateY(Vector3D p, double yRot) {
+	public static void rotateY(Vec3 p, double yRot) {
 		double x = p.x;
 		double y = p.y;
 		double z = p.z;
@@ -528,7 +528,7 @@ public class MathTools {
 		p.z = (x * -Math.sin(yRot)) + (z * Math.cos(yRot));
 	}
 
-	public static void rotateZ(Vector3D p, double zRot) {
+	public static void rotateZ(Vec3 p, double zRot) {
 		double x = p.x;
 		double y = p.y;
 		double z = p.z;

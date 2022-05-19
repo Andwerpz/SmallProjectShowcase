@@ -11,7 +11,7 @@ import java.util.ArrayList;
 
 import main.MainPanel;
 import util.MathTools;
-import util.Vector;
+import util.Vec2;
 
 public class Metaballs extends State {
 
@@ -19,7 +19,7 @@ public class Metaballs extends State {
 	
 	boolean ballSelected = false;
 	int ballId = 0;
-	Vector prevDiff;
+	Vec2 prevDiff;
 	
 	java.awt.Point prevMouse;
 	
@@ -29,14 +29,14 @@ public class Metaballs extends State {
 		balls = new ArrayList<Ball>();
 		
 		for(int i = 0; i < 3; i++) {
-			Vector pos = new Vector((Math.random() * (MainPanel.WIDTH - 200)) + 100, (Math.random() * (MainPanel.HEIGHT - 200)) + 100);
-			Vector vel = new Vector(2, 2);
-			vel.rotateCounterClockwise(Math.random() * Math.PI * 2);
+			Vec2 pos = new Vec2((Math.random() * (MainPanel.WIDTH - 200)) + 100, (Math.random() * (MainPanel.HEIGHT - 200)) + 100);
+			Vec2 vel = new Vec2(2, 2);
+			vel.rotate(Math.random() * Math.PI * 2);
 			double radius = Math.random() * 15 + 60;
 			balls.add(new Ball(pos.x, pos.y, vel.x, vel.y, radius, Math.random() * 225 + 30, Math.random() * 225 + 30, Math.random() * 225 + 30));
 		}
 		
-		prevDiff = new Vector(0, 0);
+		prevDiff = new Vec2(0, 0);
 		prevMouse = new java.awt.Point();
 	}
 
@@ -53,7 +53,7 @@ public class Metaballs extends State {
 		}
 		
 		if(ballSelected) {
-			balls.get(ballId).pos = new Vector(mouse2.x, mouse2.y);
+			balls.get(ballId).pos = new Vec2(mouse2.x, mouse2.y);
 		}
 		
 		prevDiff.x = mouse2.x - prevMouse.x;
@@ -182,7 +182,7 @@ public class Metaballs extends State {
 	@Override
 	public void mouseReleased(MouseEvent arg0) {
 		ballSelected = false;
-		balls.get(ballId).vel = new Vector(prevDiff);
+		balls.get(ballId).vel = new Vec2(prevDiff);
 	}
 
 	@Override
@@ -193,14 +193,14 @@ public class Metaballs extends State {
 	
 	class Ball {
 		
-		public Vector pos, vel;
+		public Vec2 pos, vel;
 		public double radius;
 		
 		public double r, g, b;
 		
 		public Ball(double x, double y, double xVel, double yVel, double radius, double r, double g, double b) {
-			this.pos = new Vector(x, y);
-			this.vel = new Vector(xVel, yVel);
+			this.pos = new Vec2(x, y);
+			this.vel = new Vec2(xVel, yVel);
 			this.radius = radius;
 			
 			this.r = r;
@@ -210,7 +210,7 @@ public class Metaballs extends State {
 		
 		public void tick() {
 			//update position
-			this.pos.add(vel);
+			this.pos.addi(vel);
 			
 			//collision detection
 			if(this.pos.y - this.radius < 0 || this.pos.y + this.radius > MainPanel.HEIGHT) {

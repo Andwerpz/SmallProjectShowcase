@@ -20,7 +20,7 @@ import input.Button;
 import input.InputManager;
 import main.MainPanel;
 import util.GraphicsTools;
-import util.Vector;
+import util.Vec2;
 
 public class RoguelikeMapGenerator extends State {
 	
@@ -38,7 +38,7 @@ public class RoguelikeMapGenerator extends State {
 	int mapSize = 250;
 	int tileSize = 32;
 	
-	Vector offset = new Vector(-(mapSize * tileSize) / 2 + MainPanel.WIDTH / 2, -(mapSize * tileSize) / 2 + MainPanel.HEIGHT / 2);
+	Vec2 offset = new Vec2(-(mapSize * tileSize) / 2 + MainPanel.WIDTH / 2, -(mapSize * tileSize) / 2 + MainPanel.HEIGHT / 2);
 	
 	boolean drawGrid = false;
 	
@@ -322,7 +322,7 @@ public class RoguelikeMapGenerator extends State {
 		int dy = mouse2.y - prevMouse.y;
 
 		if (pressedLeft) {
-			offset.add(new Vector(dx, dy));
+			offset.addi(new Vec2(dx, dy));
 		}
 
 		prevMouse = new java.awt.Point(mouse2.x, mouse2.y);
@@ -392,7 +392,7 @@ public class RoguelikeMapGenerator extends State {
 		Tile startTile = startTiles.get((int) (Math.random() * (double) startTiles.size()));
 		
 		Queue<int[]> exits = new ArrayDeque<int[]>();
-		Queue<Vector> exitDir = new ArrayDeque<Vector>();
+		Queue<Vec2> exitDir = new ArrayDeque<Vec2>();
 		
 		int startX = mapSize / 2;
 		int startY = mapSize / 2;
@@ -418,7 +418,7 @@ public class RoguelikeMapGenerator extends State {
 		for(int[] e : startTile.exits) {
 			exits.add(new int[] {e[0] + startX, e[1] + startY});
 			
-			Vector eDir = new Vector(0, 0);
+			Vec2 eDir = new Vec2(0, 0);
 			for(int i = 0; i < 4; i++) {
 				int x = e[0] + dx[i];
 				int y = e[1] + dy[i];
@@ -426,11 +426,11 @@ public class RoguelikeMapGenerator extends State {
 				if(
 						x < 0 || x >= startTile.map.get(0).size() || 
 						y < 0 || y >= startTile.map.size()) {
-					eDir = new Vector(dx[i], dy[i]);
+					eDir = new Vec2(dx[i], dy[i]);
 					break;
 				}
 				else if(startTile.map.get(e[1] + dy[i]).get(e[0] + dx[i]) == 1) {
-					eDir = new Vector(-dx[i], -dy[i]);
+					eDir = new Vec2(-dx[i], -dy[i]);
 					break;
 				}
 			}
@@ -458,7 +458,7 @@ public class RoguelikeMapGenerator extends State {
 		this.processWallTextures();
 	}
 	
-	public int addTileToMap(ArrayList<Tile> tiles, Queue<int[]> exits, Queue<Vector> exitDir) {
+	public int addTileToMap(ArrayList<Tile> tiles, Queue<int[]> exits, Queue<Vec2> exitDir) {
 		if(exits.size() == 0) {
 			return -1;
 		}
@@ -467,7 +467,7 @@ public class RoguelikeMapGenerator extends State {
 		int[] dy = {0, 0, -1, 1, 0};
 		
 		int[] nextExit = exits.poll();
-		Vector nextExitDir = exitDir.poll();
+		Vec2 nextExitDir = exitDir.poll();
 		
 		//try every tile in random order, until you get one
 		
@@ -630,7 +630,7 @@ public class RoguelikeMapGenerator extends State {
 					for(int[] exit : t.exits) {
 						exits.add(new int[] {exit[0] + minX, exit[1] + minY});
 						
-						Vector eDir = new Vector(0, 0);
+						Vec2 eDir = new Vec2(0, 0);
 						for(int i = 0; i < 4; i++) {
 							int x = exit[0] + dx[i];
 							int y = exit[1] + dy[i];
@@ -638,11 +638,11 @@ public class RoguelikeMapGenerator extends State {
 							if(
 									x < 0 || x >= t.map.get(0).size() || 
 									y < 0 || y >= t.map.size()) {
-								eDir = new Vector(dx[i], dy[i]);
+								eDir = new Vec2(dx[i], dy[i]);
 								break;
 							}
 							else if(t.map.get(exit[1] + dy[i]).get(exit[0] + dx[i]) == 1) {
-								eDir = new Vector(-dx[i], -dy[i]);
+								eDir = new Vec2(-dx[i], -dy[i]);
 								break;
 							}
 						}

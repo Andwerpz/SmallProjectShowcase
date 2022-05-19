@@ -1,62 +1,66 @@
 package util;
 
-public class Vector3D {
-	
+public class Vec3 {
 	public double x, y, z;
 
-	public Vector3D(double x, double y, double z) {
+	public Vec3(double x, double y, double z) {
 		this.x = x;
 		this.y = y;
 		this.z = z;
 	}
 	
-	public Vector3D(Vector3D a, Vector3D b) {
+	public Vec3(Vec3 a, Vec3 b) {
 		this.x = b.x - a.x;
 		this.y = b.y - a.y;
 		this.z = b.z - a.z;
 	}
 	
-	public Vector3D(Vector3D v) {
+	public Vec3(Vec3 v) {
 		this.x = v.x;
 		this.y = v.y;
 		this.z = v.z;
 	}
 	
-	public void addVector(Vector3D v) {
+	public Vec3 addi(Vec3 v) {
 		this.x += v.x;
 		this.y += v.y;
 		this.z += v.z;
+		return this;
 	}
 	
-	public void subtractVector(Vector3D v) {
+	public Vec3 subi(Vec3 v) {
 		this.x -= v.x;
 		this.y -= v.y;
 		this.z -= v.z;
+		return this;
 	}
 	
-	public double getMagnitude() {
+	public double length() {
 		double xyDist = MathTools.dist(0, 0, x, y);
 		return MathTools.dist(0, 0, xyDist, z);
 	}
 	
-	public void multiply(double val) {
+	public Vec3 muli(double val) {
 		this.x *= val;
 		this.y *= val;
 		this.z *= val;
+		return this;
 	}
 	
-	public void normalize() {
-		double mag = this.getMagnitude();
+	public Vec3 normalize() {
+		double mag = this.length();
 		this.x /= mag;
 		this.y /= mag;
 		this.z /= mag;
+		return this;
 	}
 	
-	public void setMagnitude(double mag) {
+	public Vec3 setLength(double mag) {
 		this.normalize();
 		this.x *= mag;
 		this.y *= mag;
 		this.z *= mag;
+		return this;
 	}
 	
 	public void rotateX(double xRot) {
@@ -83,5 +87,4 @@ public class Vector3D {
 		this.y = (x * Math.sin(zRot)) + (y * Math.cos(zRot));
 		this.z = z;
 	}
-	
 }

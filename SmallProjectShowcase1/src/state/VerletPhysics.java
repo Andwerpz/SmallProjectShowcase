@@ -12,11 +12,11 @@ import java.util.HashSet;
 
 import main.MainPanel;
 import util.MathTools;
-import util.Vector;
+import util.Vec2;
 
 public class VerletPhysics extends State {
 	
-	Vector gravity = new Vector(0, 0.2);
+	Vec2 gravity = new Vec2(0, 0.2);
 	
 	ArrayList<Particle> particles;
 	ArrayList<Spring> springs;
@@ -36,7 +36,7 @@ public class VerletPhysics extends State {
 		for(int i = 0; i < 41; i++) {
 			grid.add(new ArrayList<Particle>());
 			for(int j = 0; j < 61; j++) {
-				Particle p = new Particle(new Vector(100 + j * 10, 50 + i * 10), new Vector(Math.random() * 10 - 5, Math.random() * 10 - 5));
+				Particle p = new Particle(new Vec2(100 + j * 10, 50 + i * 10), new Vec2(Math.random() * 10 - 5, Math.random() * 10 - 5));
 				grid.get(i).add(p);
 				
 				particles.add(p);
@@ -72,9 +72,9 @@ public class VerletPhysics extends State {
 	public void tick(Point mouse2) {
 		
 		if(particleSelected) {
-			Vector newPos = new Vector(mouse2.x, mouse2.y);
-			particles.get(whichParticle).pos = new Vector(newPos);
-			particles.get(whichParticle).prevPos = new Vector(newPos);
+			Vec2 newPos = new Vec2(mouse2.x, mouse2.y);
+			particles.get(whichParticle).pos = new Vec2(newPos);
+			particles.get(whichParticle).prevPos = new Vec2(newPos);
 		}
 		
 		for(Particle p : particles) {
@@ -173,20 +173,20 @@ public class VerletPhysics extends State {
 	
 	class Particle {
 		
-		Vector pos, prevPos;
+		Vec2 pos, prevPos;
 		boolean pinned = false;	//does this particle move
 		
 		double radius = 5;
 		
-		public Particle(Vector pos) {
-			this.pos = new Vector(pos);
-			this.prevPos = new Vector(pos);
+		public Particle(Vec2 pos) {
+			this.pos = new Vec2(pos);
+			this.prevPos = new Vec2(pos);
 		}
 		
-		public Particle(Vector pos, Vector vel) {
-			this.pos = new Vector(pos);
-			this.prevPos = new Vector(pos);
-			this.prevPos.sub(vel);
+		public Particle(Vec2 pos, Vec2 vel) {
+			this.pos = new Vec2(pos);
+			this.prevPos = new Vec2(pos);
+			this.prevPos.subi(vel);
 		}
 		
 		public void tick() {
@@ -195,13 +195,13 @@ public class VerletPhysics extends State {
 				return;
 			}
 			
-			Vector nextPos = new Vector(pos);
-			Vector vel = new Vector(prevPos, pos);
-			vel.mul(1);
-			nextPos.add(vel);
+			Vec2 nextPos = new Vec2(pos);
+			Vec2 vel = new Vec2(prevPos, pos);
+			vel.muli(1);
+			nextPos.addi(vel);
 			
-			nextPos.add(gravity);
-			prevPos = new Vector(this.pos);
+			nextPos.addi(gravity);
+			prevPos = new Vec2(this.pos);
 			this.pos = nextPos;
 			
 			constrain();
@@ -251,24 +251,24 @@ public class VerletPhysics extends State {
 			double dist = MathTools.dist(a.pos.x, a.pos.y, b.pos.x, b.pos.y);
 			double diff = dist - length;
 			
-			Vector aToB = new Vector(a.pos, b.pos);
-			Vector bToA = new Vector(b.pos, a.pos);
+			Vec2 aToB = new Vec2(a.pos, b.pos);
+			Vec2 bToA = new Vec2(b.pos, a.pos);
 			
 			
 			
 			if(!a.pinned && !b.pinned) {
-				aToB.setMagnitude((diff / 2) * strength);
-				bToA.setMagnitude((diff / 2) * strength);
-				a.pos.add(aToB);
-				b.pos.add(bToA);
+				aToB.setLength((diff / 2) * strength);
+				bToA.setLength((diff / 2) * strength);
+				a.pos.addi(aToB);
+				b.pos.addi(bToA);
 			}
 			else if(!b.pinned) {
-				bToA.setMagnitude(diff * strength);
-				b.pos.add(bToA);
+				bToA.setLength(diff * strength);
+				b.pos.addi(bToA);
 			}
 			else if(!a.pinned){
-				aToB.setMagnitude(diff * strength);
-				a.pos.add(aToB);
+				aToB.setLength(diff * strength);
+				a.pos.addi(aToB);
 			}
 			
 			

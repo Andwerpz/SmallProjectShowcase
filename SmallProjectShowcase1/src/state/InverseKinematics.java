@@ -9,7 +9,8 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 
 import main.MainPanel;
-import util.Vector;
+import util.GraphicsTools;
+import util.Vec2;
 
 public class InverseKinematics extends State {
 	
@@ -20,7 +21,7 @@ public class InverseKinematics extends State {
 	public InverseKinematics(StateManager gsm) {
 		super(gsm);
 		
-		root = new Segment(new Vector(MainPanel.WIDTH / 2, MainPanel.HEIGHT / 2), 5, 0);
+		root = new Segment(new Vec2(MainPanel.WIDTH / 2, MainPanel.HEIGHT / 2), 5, 0);
 		root.root = true;
 	
 		Segment curRoot = root;
@@ -43,16 +44,18 @@ public class InverseKinematics extends State {
 	public void tick(java.awt.Point mouse2) {
 		//root.update();
 		if(fixPositionFollow) {
-			head.fixPositionFollow(new Vector(mouse2.x, mouse2.y));
+			head.fixPositionFollow(new Vec2(mouse2.x, mouse2.y));
 		}
 		else {
-			head.follow(new Vector(mouse2.x, mouse2.y));
+			head.follow(new Vec2(mouse2.x, mouse2.y));
 		}
 		
 	}
 
 	@Override
 	public void draw(Graphics g) {
+		
+		GraphicsTools.enableAntialiasing(g);
 		
 		Graphics2D g2 = (Graphics2D) g;
 		//g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -128,7 +131,7 @@ public class InverseKinematics extends State {
 	
 	class Segment {
 		
-		Vector a, b;
+		Vec2 a, b;
 		double length;
 		double angle, parentAngle;	//degrees
 		
@@ -137,22 +140,22 @@ public class InverseKinematics extends State {
 		Segment child = null;
 		Segment parent = null;
 		
-		public Segment(Vector a, double length, double angle) {
-			this.a = new Vector(a);
+		public Segment(Vec2 a, double length, double angle) {
+			this.a = new Vec2(a);
 			this.length = length;
 			this.angle = angle;
 			this.parentAngle = 0;
 			
-			this.b = new Vector(0, 0); calcB();
+			this.b = new Vec2(0, 0); calcB();
 		}
 		
 		public Segment(Segment parent, double length, double angle) {
-			this.a = new Vector(parent.b.x, parent.b.y);
+			this.a = new Vec2(parent.b.x, parent.b.y);
 			this.length = length;
 			this.angle = angle;
 			this.parentAngle = parent.angle + parent.parentAngle;
 			
-			this.b = new Vector(0, 0); calcB();
+			this.b = new Vec2(0, 0); calcB();
 			
 			this.parent = parent;
 		}
@@ -166,7 +169,7 @@ public class InverseKinematics extends State {
 			this.parent = parent;
 		}
 		
-		public void follow(Vector p) {	//segment first turns itself in the direction of p, and then sets b to p. 
+		public void follow(Vec2 p) {	//segment first turns itself in the direction of p, and then sets b to p. 
 			
 			if(!this.root) {
 				this.parentAngle = this.parent.parentAngle + this.parent.angle;
@@ -184,10 +187,10 @@ public class InverseKinematics extends State {
 			
 			this.calcB();
 			
-			Vector toNewVector = new Vector(this.b, p);
+			Vec2 toNewVector = new Vec2(this.b, p);
 			
-			this.b.add(toNewVector);
-			this.a.add(toNewVector);
+			this.b.addi(toNewVector);
+			this.a.addi(toNewVector);
 			
 			if(parent != null) {
 				this.parent.follow(a);
@@ -195,25 +198,25 @@ public class InverseKinematics extends State {
 		}
 		
 		
-		public void fixPositionFollow(Vector p) {
+		public void fixPositionFollow(Vec2 p) {
 			
 			Segment root = this;
 			while(root.parent != null) {
 				root = root.parent;
 			}
 			
-			Vector prevRoot = new Vector(root.a);
+			Vec2 prevRoot = new Vec2(root.a);
 			
 			this.follow(p);
 			
-			Vector nextRoot = new Vector(root.a);
+			Vec2 nextRoot = new Vec2(root.a);
 			
-			Vector offset = new Vector(nextRoot, prevRoot);
+			Vec2 offset = new Vec2(nextRoot, prevRoot);
 			
 			root = this;
 			while(true) {
-				root.a.add(offset);
-				root.b.add(offset);
+				root.a.addi(offset);
+				root.b.addi(offset);
 				if(root.parent != null) {
 					root = root.parent;
 				}

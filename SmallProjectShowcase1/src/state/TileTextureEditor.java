@@ -18,7 +18,7 @@ import input.Button;
 import input.InputManager;
 import input.ToggleButton;
 import util.GraphicsTools;
-import util.Vector;
+import util.Vec2;
 
 public class TileTextureEditor extends State {
 	
@@ -44,7 +44,7 @@ public class TileTextureEditor extends State {
 	
 	static ArrayList<BufferedImage[]> floorTiles = new ArrayList<BufferedImage[]>();
 	
-	Vector offset = new Vector(0, 0);
+	Vec2 offset = new Vec2(0, 0);
 	
 	static ArrayList<BufferedImage> textures;
 	int selectedTexture = 0;
@@ -280,7 +280,7 @@ public class TileTextureEditor extends State {
 		int dy = mouse2.y - prevMouse.y;
 
 		if (pressedLeft) {
-			offset.add(new Vector(dx, dy));
+			offset.addi(new Vec2(dx, dy));
 		}	
 
 		prevMouse = new java.awt.Point(mouse2.x, mouse2.y);

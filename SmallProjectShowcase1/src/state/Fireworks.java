@@ -9,15 +9,15 @@ import java.awt.event.MouseWheelEvent;
 import java.util.ArrayList;
 
 import main.MainPanel;
-import util.Vector;
-import util.Vector3D;
 import util.GraphicsTools;
 import util.MathTools;
+import util.Vec2;
+import util.Vec3;
 
 public class Fireworks extends State {
 	
 	ArrayList<Particle> particles;
-	Vector3D camera = new Vector3D(0, 70, -50);
+	Vec3 camera = new Vec3(0, 70, -50);
 	double xRot = 0.25;
 	double yRot = 0;
 	
@@ -69,22 +69,22 @@ public class Fireworks extends State {
 		
 		double moveSpeed = 3;
 		
-		Vector3D vLookDir = new Vector3D(0, 0, 1);
+		Vec3 vLookDir = new Vec3(0, 0, 1);
 		vLookDir.rotateX(xRot);	vLookDir.rotateY(yRot);
 		
-		Vector3D forwardDir = new Vector3D(vLookDir);
-		forwardDir.setMagnitude(moveSpeed);
+		Vec3 forwardDir = new Vec3(vLookDir);
+		forwardDir.normalize().muli(moveSpeed);
 		
-		Vector left = new Vector(forwardDir.x, forwardDir.z);
-		left.rotateCounterClockwise(Math.toRadians(90));
-		left.setMagnitude(moveSpeed);
+		Vec2 left = new Vec2(forwardDir.x, forwardDir.z);
+		left.rotate(Math.toRadians(90));
+		left.setLength(moveSpeed);
 		
 		if(this.left) {
-			camera.addVector(new Vector3D(left.x, 0, left.y));
+			camera.addi(new Vec3(left.x, 0, left.y));
 		}
 		if(this.right) {
-			left.setMagnitude(-moveSpeed);
-			camera.addVector(new Vector3D(left.x, 0, left.y));
+			left.setLength(-moveSpeed);
+			camera.addi(new Vec3(left.x, 0, left.y));
 		}
 		if(this.up) {
 			camera.y += moveSpeed;
@@ -94,12 +94,12 @@ public class Fireworks extends State {
 		}
 		
 		if(this.forward) {
-			camera.addVector(forwardDir);
+			camera.addi(forwardDir);
 		}
 		
 		if(this.backward) {
-			forwardDir.setMagnitude(-moveSpeed);
-			camera.addVector(forwardDir);
+			forwardDir.normalize().muli(-moveSpeed);
+			camera.addi(forwardDir);
 		}
 		
 		if(Math.random() > 0.95) {
@@ -233,27 +233,27 @@ public class Fireworks extends State {
 		
 		int lifetime;
 		boolean explode;
-		Vector3D vel;
-		Vector3D pos;
+		Vec3 vel;
+		Vec3 pos;
 		Color color;
 		
 		public Particle(double x, double y, double z, double xVel, double yVel, double zVel, boolean explode, int lifetime, Color color) {
 			this.lifetime = lifetime;
 			this.explode = explode;
-			this.pos = new Vector3D(x, y, z);
-			this.vel = new Vector3D(xVel, yVel, zVel);
+			this.pos = new Vec3(x, y, z);
+			this.vel = new Vec3(xVel, yVel, zVel);
 			this.color = color;
 		}
 		
 		public void tick() {
 			//System.out.println(pos.x + " " + pos.y + " " + pos.z);
-			this.pos.addVector(this.vel);	//update position	
+			this.pos.addi(this.vel);	//update position	
 			this.vel.y -= 0.015;	//gravity
 			this.lifetime --;
 		}
 		
 		public void draw(Graphics g) {
-			Vector3D drawn = MathTools.cameraTransform(pos, camera, xRot, yRot);
+			Vec3 drawn = MathTools.cameraTransform(pos, camera, xRot, yRot);
 			
 			double[] zBuffer = new double[] {0};
 			drawn = MathTools.projectVector(drawn, zBuffer);
@@ -282,20 +282,19 @@ public class Fireworks extends State {
 		public void explode() {
 			for(int i = 0; i < 100; i++) {
 				//generate random point within sphere
-				Vector3D p = new Vector3D(0, 0, 0);
+				Vec3 p = new Vec3(0, 0, 0);
 				while(true) {
 					p.x = Math.random() * 2 - 1;
 					p.y = Math.random() * 2 - 1;
 					p.z = Math.random() * 2 - 1;
 					
-					if(MathTools.dist3D(p, new Vector3D(0, 0, 0)) < 1) {
+					if(MathTools.dist3D(p, new Vec3(0, 0, 0)) < 1) {
 						break;
 					}
 				}
 				
-				Vector3D v = new Vector3D(p);
-				
-				v.setMagnitude(Math.random() * 0.15 + 0.5);
+				Vec3 v = new Vec3(p);
+				v.normalize().muli(Math.random() * 0.15 + 0.5);
 				
 				particles.add(new Particle(
 						pos.x, pos.y, pos.z, 

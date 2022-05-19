@@ -27,6 +27,10 @@ public class Vec2 {
 
 	public Vec2() {
 	}
+	
+	public Vec2(Vec2 a, Vec2 b) {
+		set(b.x - a.x, b.y - a.y);
+	}
 
 	public Vec2(double x, double y) {
 		set(x, y);
@@ -44,6 +48,12 @@ public class Vec2 {
 	public Vec2 set(Vec2 v) {
 		x = v.x;
 		y = v.y;
+		return this;
+	}
+	
+	public Vec2 setLength(double len) {
+		this.normalize();
+		this.muli(len);
 		return this;
 	}
 

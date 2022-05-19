@@ -26,7 +26,6 @@ import util.GraphicsTools;
 import util.Mat2;
 import util.MathTools;
 import util.Vec2;
-import util.Vector;
 
 public class ImpulseResolution extends State {
 

@@ -8,7 +8,6 @@ import java.util.ArrayList;
 
 import main.MainPanel;
 import util.Vec2;
-import util.Vector;
 
 public class ImpulseScene {
 	public double dt = 1d / 60d;
@@ -142,11 +141,11 @@ public class ImpulseScene {
 //					g.drawOval((int) (pos.x - b.shape.radius), (int) (pos.y - b.shape.radius),
 //							(int) (b.shape.radius * 2), (int) (b.shape.radius * 2));
 
-					Vector facing = new Vector(0, b.shape.radius);
-					facing.rotateCounterClockwise(b.orient);
+					Vec2 facing = new Vec2(0, b.shape.radius);
+					facing.rotate(b.orient);
 
-					Vector a = new Vector(b.position.x, b.position.y);
-					Vector aFacing = a.add(facing);
+					Vec2 a = new Vec2(b.position.x, b.position.y);
+					Vec2 aFacing = a.add(facing);
 
 					g.drawLine((int) a.x, (int) a.y, (int) aFacing.x, (int) aFacing.y);
 				}

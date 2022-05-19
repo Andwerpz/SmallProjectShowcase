@@ -22,7 +22,7 @@ import main.MainPanel;
 import util.GraphicsTools;
 import util.MathTools;
 import util.NeuralNetwork;
-import util.Vector;
+import util.Vec2;
 
 public class DrivingQLearning extends State {
 	
@@ -39,9 +39,9 @@ public class DrivingQLearning extends State {
 	
 	boolean testing = false;
 	
-	Vector camera;
+	Vec2 camera;
 	boolean mousePressed = false;
-	Vector prevMouse = new Vector(0, 0);
+	Vec2 prevMouse = new Vec2(0, 0);
 
 	ArrayList<ArrayList<double[]>> walls; // hit these and die
 	ArrayList<ArrayList<double[]>> goals; // hit these and be rewarded
@@ -53,7 +53,7 @@ public class DrivingQLearning extends State {
 			cars.add(new Car(0, 0));
 		}
 		this.generateMap();
-		camera = new Vector(0, 0);
+		camera = new Vec2(0, 0);
 		
 		im = new InputManager();
 		im.addInput(new SliderButton(10, 80, 125, 10, 0, 100, "Exploit Chance", "slider_btn_exploit_chance"));
@@ -103,9 +103,9 @@ public class DrivingQLearning extends State {
 		int dx = (int) (mouse2.x - prevMouse.x);
 		int dy = (int) (mouse2.y - prevMouse.y);
 		if(mousePressed) {
-			this.camera.sub(new Vector(dx, dy));
+			this.camera.sub(new Vec2(dx, dy));
 		}
-		prevMouse = new Vector(mouse2.x, mouse2.y);
+		prevMouse = new Vec2(mouse2.x, mouse2.y);
 	}
 
 	@Override
@@ -144,7 +144,7 @@ public class DrivingQLearning extends State {
 		// --SCREEN SPACE--
 		g.translate((int) -(-camera.x + MainPanel.WIDTH / 2), (int) -(-camera.y + MainPanel.HEIGHT / 2));
 
-		g.drawString("Speed: " + sCar.vel.getMagnitude(), 10, 20);
+		g.drawString("Speed: " + sCar.vel.length(), 10, 20);
 		g.drawString("Pos: " + sCar.pos, 10, 40);
 		g.drawString("Trials: " + trials, 10, 60);
 		
@@ -350,7 +350,7 @@ public class DrivingQLearning extends State {
 	class Car {
 
 		double friction = 0.06;
-		Vector pos, vel;
+		Vec2 pos, vel;
 		double rot;
 
 		double maxRot = Math.toRadians(7);
@@ -372,8 +372,8 @@ public class DrivingQLearning extends State {
 		ArrayList<Double> rewards;	//upd reward
 
 		public Car(double x, double y) {
-			this.pos = new Vector(x, y);
-			this.vel = new Vector(0, 0);
+			this.pos = new Vec2(x, y);
+			this.vel = new Vec2(0, 0);
 			this.rot = 0;
 			this.whichCell = 0;
 			this.maxCell = 0;
@@ -383,8 +383,8 @@ public class DrivingQLearning extends State {
 		}
 		
 		public void reset() {
-			this.pos = new Vector(0, 0);
-			this.vel = new Vector(0, 0);
+			this.pos = new Vec2(0, 0);
+			this.vel = new Vec2(0, 0);
 			this.rot = 0;
 			this.whichCell = 0;
 			this.maxCell = 0;
@@ -398,16 +398,17 @@ public class DrivingQLearning extends State {
 		public void tick(double accel, double rot) { // rot and accel from 0 - 1.
 			// first rotate the car, then accelerate along the bearing.
 			this.rot += minRot + (maxRot - minRot) * rot;
-			Vector accelVector = new Vector(1, 0);
-			accelVector.rotateCounterClockwise(this.rot);
-			accelVector.setMagnitude(minAccel + (maxAccel - minAccel) * accel);
-			this.vel.add(accelVector);
+			Vec2 accelVector = new Vec2(1, 0);
+			accelVector.rotate(this.rot);
+			accelVector.normalize();
+			accelVector.muli(minAccel + (maxAccel - minAccel) * accel);
+			this.vel.addi(accelVector);
 
 			// apply friction
-			this.vel.mul(1d - this.friction);
+			this.vel.muli(1d - this.friction);
 
 			// upd pos
-			this.pos.add(this.vel);
+			this.pos.addi(this.vel);
 		}
 		
 		public void test(ArrayList<ArrayList<double[]>> walls, ArrayList<ArrayList<double[]>> goals, Graphics g) {
@@ -580,10 +581,10 @@ public class DrivingQLearning extends State {
 			ArrayList<Double> ans = new ArrayList<Double>();
 			
 			//add normalized rotation, and velocity vector
-			Vector normVel = new Vector(this.vel);
+			Vec2 normVel = new Vec2(this.vel);
 			
-			Vector normRot = new Vector(0, 1);
-			normRot.rotateCounterClockwise(this.rot);
+			Vec2 normRot = new Vec2(0, 1);
+			normRot.rotate(this.rot);
 			
 			ans.add(normVel.x);
 			ans.add(normVel.y);
@@ -593,18 +594,18 @@ public class DrivingQLearning extends State {
 			double curRot = -viewConeRad / 2d;
 			double increment = viewConeRad / (double) (numSightLines - 1);
 			for(int i = 0; i < numSightLines; i++) {
-				Vector sightVector = new Vector(1, 0);
-				sightVector.rotateCounterClockwise(curRot + this.rot);
-				sightVector.setMagnitude(100000);//a big number
-				sightVector.add(this.pos);
+				Vec2 sightVector = new Vec2(1, 0);
+				sightVector.rotate(curRot + this.rot);
+				sightVector.muli(100000);
+				sightVector.addi(this.pos);
 				
 				double minDist = Integer.MAX_VALUE;
-				Vector minDistVector = null;
+				Vec2 minDistVector = null;
 				for(ArrayList<double[]> c : walls) {
 					for(double[] d : c) {
-						Vector intersect = MathTools.line_lineCollision(this.pos.x, this.pos.y, sightVector.x, sightVector.y, d[0], d[1], d[2], d[3]);
+						Vec2 intersect = MathTools.line_lineCollision(this.pos.x, this.pos.y, sightVector.x, sightVector.y, d[0], d[1], d[2], d[3]);
 						if(intersect != null) {
-							double dist = new Vector(this.pos, intersect).getMagnitude();
+							double dist = intersect.sub(this.pos).length();
 							if(dist < minDist) {
 								minDist = dist;
 								minDistVector = intersect;
@@ -635,9 +636,9 @@ public class DrivingQLearning extends State {
 		public void draw(Graphics g) {
 			double[][] drawnCorners = new double[4][2];
 			for (int i = 0; i < 4; i++) {
-				Vector c = new Vector(corners[i][0], corners[i][1]);
+				Vec2 c = new Vec2(corners[i][0], corners[i][1]);
 				c.mul(this.size);
-				c.rotateCounterClockwise(rot);
+				c.rotate(rot);
 				c.add(this.pos);
 				drawnCorners[i][0] = c.x;
 				drawnCorners[i][1] = c.y;
@@ -652,10 +653,10 @@ public class DrivingQLearning extends State {
 		public boolean lineCollision(double x1, double y1, double x2, double y2) {
 			double[][] corners = new double[4][2];
 			for (int i = 0; i < 4; i++) {
-				Vector c = new Vector(this.corners[i][0], this.corners[i][1]);
-				c.mul(this.size);
-				c.rotateCounterClockwise(rot);
-				c.add(this.pos);
+				Vec2 c = new Vec2(this.corners[i][0], this.corners[i][1]);
+				c.muli(this.size);
+				c.rotate(rot);
+				c.addi(this.pos);
 				corners[i][0] = c.x;
 				corners[i][1] = c.y;
 			}
