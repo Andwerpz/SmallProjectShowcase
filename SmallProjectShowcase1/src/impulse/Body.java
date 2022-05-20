@@ -15,7 +15,7 @@ public class Body{
 	public double restitution;
 	public final Shape shape;
 
-	public Body(Shape shape, int x, int y) {
+	public Body(Shape shape, double x, double y) {
 		this.shape = shape;
 
 		position.set(x, y);

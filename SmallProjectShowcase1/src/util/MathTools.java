@@ -1,6 +1,8 @@
 package util;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+
 import main.MainPanel;
 
 public class MathTools {
@@ -160,6 +162,92 @@ public class MathTools {
 		return false;
 
 	}
+	
+	public static Vec2[] calculateConvexHull(ArrayList<Vec2> verts) {
+		Vec2[] v = Vec2.arrayOf(verts.size());
+		for(int i = 0; i < verts.size(); i++) {
+			v[i].set(verts.get(i));
+		}
+		return calculateConvexHull(v);
+	}
+	
+	//given random points, will calculate convex hull
+	public static Vec2[] calculateConvexHull(Vec2[] verts) {
+		// Find the right most point on the hull
+		int rightMost = 0;
+		int vertexCount = 0;
+		double highestXCoord = verts[0].x;
+		for (int i = 1; i < verts.length; ++i) {
+			double x = verts[i].x;
+
+			if(x > highestXCoord) {
+				highestXCoord = x;
+				rightMost = i;
+			}
+			// If matching x then take farthest negative y
+			else if(x == highestXCoord) {
+				if(verts[i].y < verts[rightMost].y) {
+					rightMost = i;
+				}
+			}
+		}
+
+		int[] hull = new int[verts.length];
+		int outCount = 0;
+		int indexHull = rightMost;
+
+		for (;;) {
+			hull[outCount] = indexHull;
+
+			// Search for next index that wraps around the hull
+			// by computing cross products to find the most counter-clockwise
+			// vertex in the set, given the previos hull index
+			int nextHullIndex = 0;
+			for (int i = 1; i < verts.length; ++i) {
+				// Skip if same coordinate as we need three unique
+				// points in the set to perform a cross product
+				if(nextHullIndex == indexHull) {
+					nextHullIndex = i;
+					continue;
+				}
+
+				// Cross every set of three unique vertices
+				// Record each counter clockwise third vertex and add
+				// to the output hull
+				// See : http://www.oocities.org/pcgpe/math2d.html
+				Vec2 e1 = verts[nextHullIndex].sub(verts[hull[outCount]]);
+				Vec2 e2 = verts[i].sub(verts[hull[outCount]]);
+				double c = Vec2.cross(e1, e2);
+				if(c < 0.0f) {
+					nextHullIndex = i;
+				}
+
+				// Cross product is zero then e vectors are on same line
+				// therefore want to record vertex farthest along that line
+				if(c == 0.0f && e2.lengthSq() > e1.lengthSq()) {
+					nextHullIndex = i;
+				}
+			}
+
+			++outCount;
+			indexHull = nextHullIndex;
+
+			// Conclude algorithm upon wrap-around
+			if(nextHullIndex == rightMost) {
+				vertexCount = outCount;
+				break;
+			}
+		}
+		
+		Vec2[] ans = Vec2.arrayOf(vertexCount);
+
+		// Copy vertices into shape's vertices
+		for (int i = 0; i < vertexCount; ++i) {
+			ans[i].set(verts[hull[i]]);
+		}
+		
+		return ans;
+	}
 
 	// assuming that the points are arranged into a convex hull.
 	// get the centroid of each triangle, then take the weighted average of the
@@ -182,6 +270,10 @@ public class MathTools {
 
 		accumulatedArea *= 3f;
 		return new Vec2(centerX / accumulatedArea, centerY / accumulatedArea);
+	}
+	
+	public static Vec2 getCentroid(Vec2[] points) {
+		return getCentroid(new ArrayList<Vec2>(Arrays.asList(points)));
 	}
 
 	// -------------- 3D graphics --------------

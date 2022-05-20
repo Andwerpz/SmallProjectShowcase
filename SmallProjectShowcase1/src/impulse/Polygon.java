@@ -1,5 +1,7 @@
 package impulse;
 
+import java.util.ArrayList;
+
 import util.Vec2;
 
 public class Polygon extends Shape {
@@ -14,6 +16,14 @@ public class Polygon extends Shape {
 
 	public Polygon(Vec2... verts) {
 		set(verts);
+	}
+	
+	public Polygon(ArrayList<Vec2> verts) {
+		Vec2[] v = Vec2.arrayOf(verts.size());
+		for(int i = 0; i < verts.size(); i++) {
+			v[i].set(verts.get(i));
+		}
+		set(v);
 	}
 
 	public Polygon(double hw, double hh) {

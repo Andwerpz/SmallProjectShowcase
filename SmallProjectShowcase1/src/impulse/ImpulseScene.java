@@ -12,33 +12,38 @@ import util.Vec2;
 public class ImpulseScene {
 	public double dt = 1d / 60d;
 	public int iterations = 4;
-	public ArrayList<Body> bodies = new ArrayList<Body>();
-	public ArrayList<Manifold> contacts = new ArrayList<Manifold>();
+	public ArrayList<Body> bodies;
+	public ArrayList<Manifold> contacts;
 
 	public boolean fillBodies = true;
+	public boolean doGravity = true;
+	public boolean doCollision = true;
 
 	public ImpulseScene() {
-		
+		bodies = new ArrayList<>();
+		contacts = new ArrayList<>();
 	}
 
 	public void tick() {
-		// Generate new collision info
-		contacts.clear();
-		for (int i = 0; i < bodies.size(); ++i) {
-			Body A = bodies.get(i);
+		if(doCollision) {
+			// Generate new collision info
+			contacts.clear();
+			for (int i = 0; i < bodies.size(); ++i) {
+				Body A = bodies.get(i);
 
-			for (int j = i + 1; j < bodies.size(); ++j) {
-				Body B = bodies.get(j);
+				for (int j = i + 1; j < bodies.size(); ++j) {
+					Body B = bodies.get(j);
 
-				if(A.invMass == 0 && B.invMass == 0) {
-					continue;
-				}
+					if(A.invMass == 0 && B.invMass == 0) {
+						continue;
+					}
 
-				Manifold m = new Manifold(A, B);
-				m.solve();
+					Manifold m = new Manifold(A, B);
+					m.solve();
 
-				if(m.contactCount > 0) {
-					contacts.add(m);
+					if(m.contactCount > 0) {
+						contacts.add(m);
+					}
 				}
 			}
 		}
@@ -52,7 +57,6 @@ public class ImpulseScene {
 		for (int i = 0; i < contacts.size(); ++i) {
 			contacts.get(i).initialize();
 		}
-
 		// Solve collisions
 		for (int j = 0; j < iterations; ++j) {
 			for (int i = 0; i < contacts.size(); ++i) {
@@ -97,7 +101,9 @@ public class ImpulseScene {
 		double dts = dt * 0.5f;
 
 		b.velocity.addsi(b.force, b.invMass * dts);
-		b.velocity.addsi(ImpulseMath.GRAVITY, dts);
+		if(doGravity) {
+			b.velocity.addsi(ImpulseMath.GRAVITY, dts);
+		}
 		b.angularVelocity += b.torque * b.invInertia * dts;
 	}
 
@@ -122,8 +128,8 @@ public class ImpulseScene {
 
 	public void draw(Graphics g) {
 		Graphics2D g2d = (Graphics2D) g;
-		
-		//transform to real space
+
+		// transform to real space
 		AffineTransform realSpaceTransform = new AffineTransform();
 		realSpaceTransform.scale(1.0, -1.0);
 		realSpaceTransform.translate(0, -MainPanel.HEIGHT);
@@ -138,8 +144,8 @@ public class ImpulseScene {
 							(int) (b.shape.radius * 2), (int) (b.shape.radius * 2));
 				}
 				else {
-//					g.drawOval((int) (pos.x - b.shape.radius), (int) (pos.y - b.shape.radius),
-//							(int) (b.shape.radius * 2), (int) (b.shape.radius * 2));
+					g.drawOval((int) (pos.x - b.shape.radius), (int) (pos.y - b.shape.radius),
+							(int) (b.shape.radius * 2), (int) (b.shape.radius * 2));
 
 					Vec2 facing = new Vec2(0, b.shape.radius);
 					facing.rotate(b.orient);
@@ -167,12 +173,13 @@ public class ImpulseScene {
 					g.fillPolygon(cx, cy, p.vertexCount);
 				}
 				else {
+					g.drawOval((int) (b.position.x - 3), (int) (b.position.y - 3), 6, 6);
 					g.drawPolygon(cx, cy, p.vertexCount);
 				}
 			}
 		}
-		
-		//transform back to screen space
+
+		// transform back to screen space
 		try {
 			g2d.transform(realSpaceTransform.createInverse());
 		} catch (NoninvertibleTransformException e) {
