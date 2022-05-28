@@ -19,46 +19,53 @@ import input.InputManager;
 import input.SliderButton;
 import input.ToggleButton;
 import main.MainPanel;
+import util.FCLayer;
 import util.GraphicsTools;
+import util.Layer;
 import util.MathTools;
 import util.NeuralNetwork;
 import util.Vec2;
 
 public class DrivingQLearning extends State {
-	
+
 	InputManager im;
 
 	ArrayList<Car> cars;
-	int numCars = 100;
+	int numCars = 200;
 	int selectedCar = 0;
 
 	boolean accelerate = false;
 	boolean reverse = false;
 	boolean turnLeft = false;
 	boolean turnRight = false;
-	
+
 	boolean testing = false;
-	
+
 	Vec2 camera;
 	boolean mousePressed = false;
 	Vec2 prevMouse = new Vec2(0, 0);
 
 	ArrayList<ArrayList<double[]>> walls; // hit these and die
 	ArrayList<ArrayList<double[]>> goals; // hit these and be rewarded
+	
+	int generation = 0;
+	int curGenTimer = 0;
+	int genTimeLimit = 300;
+	
+	double avgFitness = 0;
 
 	public DrivingQLearning(StateManager gsm) {
 		super(gsm);
 		cars = new ArrayList<>();
-		for(int i = 0; i < numCars; i++) {
+		for (int i = 0; i < numCars; i++) {
 			cars.add(new Car(0, 0));
 		}
 		this.generateMap();
 		camera = new Vec2(0, 0);
-		
+
 		im = new InputManager();
-		im.addInput(new SliderButton(10, 80, 125, 10, 0, 100, "Exploit Chance", "slider_btn_exploit_chance"));
-		im.setVal("slider_btn_exploit_chance", 0);
-		im.addInput(new ToggleButton(10, 100, 100, 25, "Toggle Test", "toggle_btn_test"));
+		im.addInput(new SliderButton(10, 65, 200, 10, 100, 1000, "Time Limit", "slider_btn_time_limit"));
+		im.setVal("slider_btn_time_limit", 300);
 	}
 
 	@Override
@@ -70,84 +77,161 @@ public class DrivingQLearning extends State {
 	@Override
 	public void tick(Point mouse2) {
 		im.tick(mouse2);
-		exploitChance = (double) im.getVal("slider_btn_exploit_chance") / 100d;
-		testing = im.getToggled("toggle_btn_test");
+		genTimeLimit = im.getVal("slider_btn_time_limit");
+		
+		//player controlled car
+//		Car sCar = this.cars.get(this.selectedCar);
+//		sCar.tick(0.5 + (accelerate ? 0.5 : 0) + (reverse ? -0.5 : 0),
+//				0.5 + (turnLeft ? -0.5 : 0) + (turnRight ? 0.5 : 0), walls, goals);
 		
 		boolean allDead = true;
+		curGenTimer ++;
 		
-		//train cars
+		//tick all cars
 		for(Car c : cars) {
-			if(testing) {
-				c.test(walls, goals, null);
-			}
-			else {
-				if(!c.dead) {
-					allDead = false;
-				}
-				else {
-					continue;
-				}
-				c.train(walls, goals, null);
-			}
+			c.cpuTick(walls, goals);
+			allDead &= c.dead;
 		}
 		
-		//train the value func with the information provided, and reset cars
-		if(allDead) {
+		if(allDead || curGenTimer >= genTimeLimit) {
+			//reset for next generation
+			curGenTimer = 0;
+			generation ++;
+			
+			cars.sort((a, b) -> -Double.compare(a.fitness, b.fitness));
+			
+			for(int i = numCars - 1; i > numCars / 2; i--) {
+				cars.remove(i);
+			}
+			
+			//calc avg fitness
+			this.avgFitness = 0;
 			for(Car c : cars) {
-				c.experienceReplay();
+				avgFitness += c.fitness;
+			}
+			avgFitness /= cars.size();
+			
+			ArrayList<Car> nextCars = new ArrayList<Car>();
+			while(cars.size() + nextCars.size() < numCars) {
+				double choice = Math.random();
+				if(choice > 0.95) {
+					//generate new random car
+					nextCars.add(new Car(0, 0));
+				}
+				else if(choice > 0.65) {
+					//mutate existing car
+					nextCars.add(this.mutate(cars.get((int) (Math.random() * cars.size()))));
+				}
+				else {
+					//combine two existing cars
+					nextCars.add(this.combine(cars.get((int) (Math.random() * cars.size())), cars.get((int) (Math.random() * cars.size()))));
+				}
+			}
+			cars.addAll(nextCars);
+			
+			for(Car c : cars) {
 				c.reset();
 			}
 		}
-		
-		//adjust camera
+
+		// adjust camera
 		int dx = (int) (mouse2.x - prevMouse.x);
 		int dy = (int) (mouse2.y - prevMouse.y);
-		if(mousePressed) {
-			this.camera.sub(new Vec2(dx, dy));
+		if (mousePressed) {
+			this.camera.subi(new Vec2(dx, dy));
 		}
 		prevMouse = new Vec2(mouse2.x, mouse2.y);
+	}
+	
+	//take average of weights between two cars, and mutate the result. 
+	public Car combine(Car a, Car b) {
+		Random rand = new Random();
+		
+		Car out = new Car(0, 0);
+		NeuralNetwork net = out.moveNet;
+		
+		//combine weights
+		for(int i = 0; i < net.layers.size(); i++) {
+			FCLayer fl = (FCLayer) net.layers.get(i);
+			for(int j = 0; j < fl.weights.length; j++) {
+				double[] w = fl.weights[j];
+				for(int k = 0; k < w.length; k++) {
+					w[k] = (((FCLayer) a.moveNet.layers.get(i)).weights[j][k] + ((FCLayer) b.moveNet.layers.get(i)).weights[j][k]) / 2;
+					w[k] += rand.nextGaussian();
+				}
+			}
+		}
+		
+		return out;
+	}
+	
+	double mutationChance = 0.1;	//chance for each weight to be mutated
+	double mutationStrength = 1;
+	
+	//randomly change a portion of weights
+	public Car mutate(Car a) {
+		Random rand = new Random();
+		
+		//copy over neural network
+		Car out = new Car(0, 0);
+		out.moveNet.layers.clear();
+		for(Layer l : a.moveNet.layers) {
+			out.moveNet.layers.add(new FCLayer(out.moveNet, (FCLayer) l));
+		}
+		NeuralNetwork net = out.moveNet;
+		
+		//apply mutation
+		for(Layer l : net.layers) {
+			FCLayer fl = (FCLayer) l;
+			for(double[] w : fl.weights) {
+				for(int i = 0; i < w.length; i++) {
+					if(Math.random() < mutationChance) {
+						w[i] += rand.nextGaussian() * mutationStrength;
+					}
+				}
+			}
+		}
+		
+		return out;
 	}
 
 	@Override
 	public void draw(Graphics g) {
-		
+
 		g.setColor(Color.BLACK);
 		GraphicsTools.enableAntialiasing(g);
-		
+
 		Car sCar = this.cars.get(this.selectedCar);
-		
+
 		// --CAMERA SPACE--
 		g.translate((int) (-camera.x + MainPanel.WIDTH / 2), (int) (-camera.y + MainPanel.HEIGHT / 2));
 
-		for(Car c : cars) {
+		for (Car c : cars) {
 			c.draw(g);
 		}
 
 		// draw goals
-//		g.setColor(Color.GREEN);
-//		for(ArrayList<double[]> c : goals) {
-//			for (double[] d : c) {
-//				g.drawLine((int) d[0], (int) d[1], (int) d[2], (int) d[3]);
-//			}
-//		}
-		
-
-		// draw walls
-		g.setColor(Color.BLACK);
-		for(ArrayList<double[]> c : walls) {
+		g.setColor(Color.GREEN);
+		for (ArrayList<double[]> c : goals) {
 			for (double[] d : c) {
 				g.drawLine((int) d[0], (int) d[1], (int) d[2], (int) d[3]);
 			}
 		}
-		
-		
+
+		// draw walls
+		g.setColor(Color.BLACK);
+		for (ArrayList<double[]> c : walls) {
+			for (double[] d : c) {
+				g.drawLine((int) d[0], (int) d[1], (int) d[2], (int) d[3]);
+			}
+		}
+
 		// --SCREEN SPACE--
 		g.translate((int) -(-camera.x + MainPanel.WIDTH / 2), (int) -(-camera.y + MainPanel.HEIGHT / 2));
 
-		g.drawString("Speed: " + sCar.vel.length(), 10, 20);
-		g.drawString("Pos: " + sCar.pos, 10, 40);
-		g.drawString("Trials: " + trials, 10, 60);
-		
+		g.drawString("Generation: " + generation, 10, 20);
+		g.drawString("Avg Fitness: " + avgFitness, 10, 40);
+
 		im.draw(g);
 	}
 
@@ -173,8 +257,8 @@ public class DrivingQLearning extends State {
 			s.clear();
 			dxy = new int[][] { { 1, 0 }, { -1, 0 }, { 0, -1 }, { 0, 1 } };
 			for (int i = 0; i < mapLength; i++) {
-				if(i != 0) {
-					//shuffleArray(dxy);
+				if (i != 0) {
+					shuffleArray(dxy);
 				}
 				isValid = false;
 				cells.add(new int[] { curX, curY });
@@ -211,13 +295,12 @@ public class DrivingQLearning extends State {
 			int cellY = cells.get(i)[1];
 			int x = cellX * mapCellSize;
 			int y = cellY * mapCellSize;
-			
+
 			this.walls.add(new ArrayList<>());
 			this.goals.add(new ArrayList<>());
-			
+
 			// if there is a cell on a given side, then that wall becomes a goal
-			dxyLoop:
-			for (int k = 0; k < 4; k++) {
+			dxyLoop: for (int k = 0; k < 4; k++) {
 				int nextX = cellX + dxy[k][0];
 				int nextY = cellY + dxy[k][1];
 				boolean isWall = true;
@@ -230,8 +313,8 @@ public class DrivingQLearning extends State {
 
 					if (connectedCellX == nextX && connectedCellY == nextY) {
 						isWall = false;
-						
-						if(j == -1) {	//we're checking the previous cell. It already has a goal for us
+
+						if (j == -1) { // we're checking the previous cell. It already has a goal for us
 							continue dxyLoop;
 						}
 						break;
@@ -336,18 +419,29 @@ public class DrivingQLearning extends State {
 		// TODO Auto-generated method stub
 
 	}
-	
-	static NeuralNetwork valueFunction = new NeuralNetwork();
-	static double exploitChance = 0;
-	static double discount = 0.3;
-	static double learningRate = 0.001;
-	static int trials = 0;
-	
-	static double goalReward = 5;
-	static double timeReward = -0.1;
-	static double wallReward = -1;
+
+	static double goalReward = 1;
+	static double wallReward = 0;
+
+	// INPUT:
+	// normalized velocity
+	// normalized rotation
+	// 31 prox sensors
+	public static int inputSize = 35;
+
+	// OUTPUT:
+	// accelerate and turn left
+	// accelerate and turn right
+	// accelerate
+	// turn left
+	// turn right
+	// idle
+	// reverse
+	public static int outputSize = 7;
 
 	class Car {
+
+		NeuralNetwork moveNet;
 
 		double friction = 0.06;
 		Vec2 pos, vel;
@@ -357,45 +451,51 @@ public class DrivingQLearning extends State {
 		double maxAccel = 0.4;
 		double minRot = Math.toRadians(-7);
 		double minAccel = -0.4;
-		
-		int whichCell;	//which cell is this car currently at
-		int maxCell;	//maximum cell visited by this car
+
+		int whichCell; // which cell is this car currently at
+		int maxCell; // maximum cell visited by this car
 
 		double size = 30;
 		double[][] corners = new double[][] { { -0.4, -0.2 }, { 0.4, -0.2 }, { 0.4, 0.2 }, { -0.4, 0.2 } };
-		
-		boolean dead = false;
-		
-		//STATE REPLAY
-		ArrayList<double[]> states;	//inputs
-		ArrayList<Integer> moves;	//chosen move
-		ArrayList<Double> rewards;	//upd reward
 
+		public double fitness;
+		public boolean dead;
+		
+		//creates a brand new car with randomly generated weights
 		public Car(double x, double y) {
 			this.pos = new Vec2(x, y);
 			this.vel = new Vec2(0, 0);
 			this.rot = 0;
 			this.whichCell = 0;
 			this.maxCell = 0;
-			this.states = new ArrayList<double[]>();
-			this.moves = new ArrayList<Integer>();
-			this.rewards = new ArrayList<Double>();
+			this.fitness = 0;
+			this.dead = false;
+
+			this.moveNet = new NeuralNetwork(inputSize, outputSize);
+			this.moveNet.layers.add(new FCLayer(moveNet, inputSize, 40, FCLayer.ACTIVATION_TYPE_SIGMOID));
+			this.moveNet.layers.add(new FCLayer(moveNet, 40, 30, FCLayer.ACTIVATION_TYPE_SIGMOID));
+			this.moveNet.layers.add(new FCLayer(moveNet, 30, outputSize, FCLayer.ACTIVATION_TYPE_SIGMOID));
 		}
 		
+		//resets position
 		public void reset() {
 			this.pos = new Vec2(0, 0);
 			this.vel = new Vec2(0, 0);
 			this.rot = 0;
 			this.whichCell = 0;
 			this.maxCell = 0;
-			this.states = new ArrayList<double[]>();
-			this.moves = new ArrayList<Integer>();
-			this.rewards = new ArrayList<Double>();
+			this.fitness = 0;
 			this.dead = false;
 		}
 
 		// advance one timestep
-		public void tick(double accel, double rot) { // rot and accel from 0 - 1.
+		public void tick(double accel, double rot, ArrayList<ArrayList<double[]>> walls,
+				ArrayList<ArrayList<double[]>> goals) { // rot and accel from 0 - 1.
+			// check if dead
+			if (this.dead) {
+				return;
+			}
+
 			// first rotate the car, then accelerate along the bearing.
 			this.rot += minRot + (maxRot - minRot) * rot;
 			Vec2 accelVector = new Vec2(1, 0);
@@ -409,227 +509,132 @@ public class DrivingQLearning extends State {
 
 			// upd pos
 			this.pos.addi(this.vel);
-		}
-		
-		public void test(ArrayList<ArrayList<double[]>> walls, ArrayList<ArrayList<double[]>> goals, Graphics g) {
-			//get q values
-			double[] s1Input = this.getInput(walls, g);
-			double[] s1Output = DrivingQLearning.valueFunction.forwardPropogate(s1Input);
-			
-			//determine move
-			double maxActivation = s1Output[0];
-			int s1Move = 0;
-			for(int i = 0; i < s1Output.length; i++) {
-				if(maxActivation < s1Output[i]) {
-					maxActivation = s1Output[i];
-					s1Move = i;
-				}
-			}
-			
-			//perform tick
-			switch(s1Move) {
-			case 0:
-				this.tick(1, 0);
-				break;
-				
-			case 1:
-				this.tick(1, 1);
-				break;
-				
-			case 2:
-				this.tick(1, 0.5);
-				break;
-				
-			case 3:
-				this.tick(0.5, 0);
-				break;
-				
-			case 4:
-				this.tick(0.5, 1);
-				break;
-				
-			case 5:
-				this.tick(0.5, 0.5);
-				break;
-				
-			case 6:
-				this.tick(0, 0.5);
-				break;
-			}
-			
-			//get reward + estimated future reward * discount
-			this.goalCollision(goals);
-			if(this.wallCollision(walls)) {
-				this.reset();
-			}
-		}
-		
-		//does a tick, and then trains the function network based off of reward gained. 
-		public void train(ArrayList<ArrayList<double[]>> walls, ArrayList<ArrayList<double[]>> goals, Graphics g) {
-			//get input for current state
-			double[] s1Input = this.getInput(walls, g);
-			
-//			for(double d : s1Input) {
-//				System.out.println(d);
-//			}
-//			System.out.println();
-			
-			double[] s1Output = DrivingQLearning.valueFunction.forwardPropogate(s1Input);
-			
-			//choose move
-			//OUTPUT:
-			//0: accelerate and turn left
-			//1: accelerate and turn right
-			//2: accelerate
-			//3: turn left
-			//4: turn right
-			//5: idle
-			//6: reverse
-			int s1Move = -1;
-			if(Math.random() < DrivingQLearning.exploitChance) {	//choose best move
-				double maxActivation = s1Output[0];
-				s1Move = 0;
-				for(int i = 0; i < s1Output.length; i++) {
-					if(maxActivation < s1Output[i]) {
-						maxActivation = s1Output[i];
-						s1Move = i;
-					}
-				}
-			}
-			else {	//random move
-				s1Move = (int) (Math.random() * s1Output.length);
-			}
-			
-			//perform tick
-			switch(s1Move) {
-			case 0:
-				this.tick(1, 0);
-				break;
-				
-			case 1:
-				this.tick(1, 1);
-				break;
-				
-			case 2:
-				this.tick(1, 0.5);
-				break;
-				
-			case 3:
-				this.tick(0.5, 0);
-				break;
-				
-			case 4:
-				this.tick(0.5, 1);
-				break;
-				
-			case 5:
-				this.tick(0.5, 0.5);
-				break;
-				
-			case 6:
-				this.tick(0, 0.5);
-				break;
-			}
-			
-			//get output of s2.
-			double[] s2Input = this.getInput(walls, g);
-			double[] s2Output = DrivingQLearning.valueFunction.forwardPropogate(s2Input);
-			
-			//get reward + estimated future reward * discount
-			double reward = 0;
-			reward += DrivingQLearning.timeReward;
-			reward += this.goalCollision(goals) == 1? DrivingQLearning.goalReward : 0;
-			boolean wallCollision = false;
-			if(this.wallCollision(walls)) {
-				wallCollision = true;
-				reward += DrivingQLearning.wallReward;
-			}
-			double maxEstimatedReward = Integer.MIN_VALUE;
-			for(double d : s2Output) {
-				maxEstimatedReward = Math.max(d, maxEstimatedReward);
-			}
-			reward += maxEstimatedReward * DrivingQLearning.discount;
-			
-			//put prev state + move + reward combo into memory for later
-			this.states.add(s1Input);
-			this.rewards.add(s1Output[s1Move] + (reward - s1Output[s1Move]) * DrivingQLearning.learningRate);	//adjusted reward after factoring in learning rate
-			this.moves.add(s1Move);
-			
-			//reset and train function if hit wall or reached end of track
-			if(wallCollision || this.whichCell >= goals.size() - 3) {
+
+			// upd fitness
+			if (this.wallCollision(walls)) {
+				this.fitness += DrivingQLearning.wallReward;
 				this.dead = true;
-				DrivingQLearning.trials ++;
+			}
+			if (this.goalCollision(goals) == 1) {
+				this.fitness += DrivingQLearning.goalReward;
 			}
 		}
-		
-		public void experienceReplay() {
-			for(int i = 0; i < this.states.size(); i++) {
-				double[] nextState = this.states.get(i);
-				double[] nextOutput = DrivingQLearning.valueFunction.forwardPropogate(nextState);
-				int nextMove = this.moves.get(i);
-				double nextReward = this.rewards.get(i);
-				nextOutput[nextMove] = nextReward;
-				DrivingQLearning.valueFunction.backPropogate(nextState, nextOutput);
+
+		// make the moveNet predict the best move and take that one
+		public void cpuTick(ArrayList<ArrayList<double[]>> walls, ArrayList<ArrayList<double[]>> goals) {
+			double[] moveNetOutput = this.moveNet.forwardPropogate(this.getInput(walls, null));
+			int bestMove = (int) (Math.random() * moveNetOutput.length);
+			double bestMoveVal = moveNetOutput[bestMove];
+			for (int i = 0; i < moveNetOutput.length; i++) {
+				if (moveNetOutput[i] > bestMoveVal) {
+					bestMove = i;
+					bestMoveVal = moveNetOutput[i];
+				}
 			}
+
+			// accelerate and turn left
+			// accelerate and turn right
+			// accelerate
+			// turn left
+			// turn right
+			// idle
+			// reverse
+
+			boolean accelerate = false, left = false, right = false, reverse = false;
+
+			switch (bestMove) {
+			case 0:
+				accelerate = true;
+				left = true;
+				break;
+
+			case 1:
+				accelerate = true;
+				right = true;
+				break;
+
+			case 2:
+				accelerate = true;
+				break;
+
+			case 3:
+				left = true;
+				break;
+
+			case 4:
+				right = true;
+				break;
+
+			case 5:
+				// do nothing
+				break;
+
+			case 6:
+				reverse = true;
+				break;
+			}
+
+			this.tick(0.5 + (accelerate ? 0.5 : 0) + (reverse ? -0.5 : 0), 0.5 + (left ? -0.5 : 0) + (right ? 0.5 : 0),
+					walls, goals);
 		}
-		
+
 		int numSightLines = 31;
 		double viewConeRad = Math.toRadians(240);
-		
-		//what the car can see
+
+		// what the car can see
 		public double[] getInput(ArrayList<ArrayList<double[]>> walls, Graphics g) {
 			ArrayList<Double> ans = new ArrayList<Double>();
-			
-			//add normalized rotation, and velocity vector
+
+			// add normalized rotation, and velocity vector
 			Vec2 normVel = new Vec2(this.vel);
-			
+
 			Vec2 normRot = new Vec2(0, 1);
 			normRot.rotate(this.rot);
-			
+
 			ans.add(normVel.x);
 			ans.add(normVel.y);
 			ans.add(normRot.x);
 			ans.add(normRot.y);
-			
+
 			double curRot = -viewConeRad / 2d;
 			double increment = viewConeRad / (double) (numSightLines - 1);
-			for(int i = 0; i < numSightLines; i++) {
+			for (int i = 0; i < numSightLines; i++) {
 				Vec2 sightVector = new Vec2(1, 0);
 				sightVector.rotate(curRot + this.rot);
 				sightVector.muli(100000);
 				sightVector.addi(this.pos);
-				
+
 				double minDist = Integer.MAX_VALUE;
 				Vec2 minDistVector = null;
-				for(ArrayList<double[]> c : walls) {
-					for(double[] d : c) {
-						Vec2 intersect = MathTools.line_lineCollision(this.pos.x, this.pos.y, sightVector.x, sightVector.y, d[0], d[1], d[2], d[3]);
-						if(intersect != null) {
+				for (ArrayList<double[]> c : walls) {
+					for (double[] d : c) {
+						Vec2 intersect = MathTools.line_lineCollision(this.pos.x, this.pos.y, sightVector.x,
+								sightVector.y, d[0], d[1], d[2], d[3]);
+						if (intersect != null) {
 							double dist = intersect.sub(this.pos).length();
-							if(dist < minDist) {
+							if (dist < minDist) {
 								minDist = dist;
 								minDistVector = intersect;
 							}
 						}
 					}
 				}
-				
+
 //				g.setColor(Color.GREEN);
 //				if(minDistVector != null) {
 //					g.drawLine((int) this.pos.x, (int) this.pos.y, (int) minDistVector.x, (int) minDistVector.y);
 //					g.drawRect((int) minDistVector.x - 2, (int) minDistVector.y - 2, 4, 4);
 //				}
-				
-				
+
 				ans.add(1d / minDist);
 				curRot += increment;
 			}
-			
+
 			double[] output = new double[ans.size()];
-			for(int i = 0; i < output.length; i++) {
+			for (int i = 0; i < output.length; i++) {
 				output[i] = ans.get(i);
 			}
-			
+
 			return output;
 		}
 
@@ -637,9 +642,9 @@ public class DrivingQLearning extends State {
 			double[][] drawnCorners = new double[4][2];
 			for (int i = 0; i < 4; i++) {
 				Vec2 c = new Vec2(corners[i][0], corners[i][1]);
-				c.mul(this.size);
+				c.muli(this.size);
 				c.rotate(rot);
-				c.add(this.pos);
+				c.addi(this.pos);
 				drawnCorners[i][0] = c.x;
 				drawnCorners[i][1] = c.y;
 			}
@@ -648,8 +653,8 @@ public class DrivingQLearning extends State {
 						(int) drawnCorners[(i + 1) % 4][1]);
 			}
 		}
-		
-		//checks if any part of the car collides with the line
+
+		// checks if any part of the car collides with the line
 		public boolean lineCollision(double x1, double y1, double x2, double y2) {
 			double[][] corners = new double[4][2];
 			for (int i = 0; i < 4; i++) {
@@ -660,46 +665,49 @@ public class DrivingQLearning extends State {
 				corners[i][0] = c.x;
 				corners[i][1] = c.y;
 			}
-			
-			for(int i = 0; i < 4; i++) {
-				if(MathTools.line_lineCollision(x1, y1, x2, y2, corners[i][0], corners[i][1], corners[(i + 1) % 4][0], corners[(i + 1) % 4][1]) != null) {
+
+			for (int i = 0; i < 4; i++) {
+				if (MathTools.line_lineCollision(x1, y1, x2, y2, corners[i][0], corners[i][1], corners[(i + 1) % 4][0],
+						corners[(i + 1) % 4][1]) != null) {
 					return true;
 				}
 			}
 			return false;
 		}
-		
-		//if you have last touched the ith goal, then you only need to check cells i, and i + 1. 
+
+		// if you have last touched the ith goal, then you only need to check cells i,
+		// and i + 1.
 		public boolean wallCollision(ArrayList<ArrayList<double[]>> walls) {
-			for(int i = this.whichCell; i < Math.min(walls.size(), this.whichCell + 2); i++) {
-				for(double[] d : walls.get(i)) {
-					if(this.lineCollision(d[0], d[1], d[2], d[3])) {
+			for (int i = this.whichCell; i < Math.min(walls.size(), this.whichCell + 2); i++) {
+				for (double[] d : walls.get(i)) {
+					if (this.lineCollision(d[0], d[1], d[2], d[3])) {
 						return true;
 					}
 				}
 			}
 			return false;
 		}
-		
-		//if you have last touched the ith goal, then you only need to check if you're touching the i + 1th or i - 1th goal. 
-		//returns true only if max cell has been incremented.
+
+		// if you have last touched the ith goal, then you only need to check if you're
+		// touching the i + 1th or i - 1th goal.
+		// returns true only if max cell has been incremented.
 		public int goalCollision(ArrayList<ArrayList<double[]>> goals) {
-			//previous goal
-			if(this.whichCell != 0) {
+			// previous goal
+			if (this.whichCell > 0) {
 				double[] nextGoal = goals.get(this.whichCell - 1).get(0);
-				if(this.lineCollision(nextGoal[0], nextGoal[1], nextGoal[2], nextGoal[3])) {
-					this.whichCell --;
-					return -1;	//going backwards
+				if (this.lineCollision(nextGoal[0], nextGoal[1], nextGoal[2], nextGoal[3])) {
+					this.whichCell--;
+					return -1; // going backwards
 				}
 			}
-			//next goal
-			if(this.whichCell != goals.size() - 1) {
+			// next goal
+			if (this.whichCell != goals.size() - 1) {
 				double[] nextGoal = goals.get(this.whichCell + 1).get(0);
-				if(this.lineCollision(nextGoal[0], nextGoal[1], nextGoal[2], nextGoal[3])) {
-					this.whichCell ++;
-					if(this.maxCell < this.whichCell) {
+				if (this.lineCollision(nextGoal[0], nextGoal[1], nextGoal[2], nextGoal[3])) {
+					this.whichCell++;
+					if (this.maxCell < this.whichCell) {
 						this.maxCell = this.whichCell;
-						return 1;	//going forwards
+						return 1; // going forwards
 					}
 				}
 			}

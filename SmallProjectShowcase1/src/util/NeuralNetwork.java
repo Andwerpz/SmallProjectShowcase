@@ -10,38 +10,17 @@ import java.util.Arrays;
 
 public class NeuralNetwork {
 	
-	public static final double LEARNING_RATE = 0.001;
-	
-	//INPUT: 
-	//diff from goal
-	//normalized vector to goal
-	//velocity
-	//rotation vector
-	public static final int INPUT_SIZE = 35;
-	
-	//OUTPUT:
-	//accelerate and turn left
-	//accelerate and turn right
-	//accelerate
-	//turn left
-	//turn right
-	//idle
-	//reverse
-	public static final int OUTPUT_SIZE = 7;
+	public double learningRate = 0.001;
+
+	public int inputSize;
+	public int outputSize;
 	
 	public ArrayList<Layer> layers;
 
-	public NeuralNetwork() {
-		this.generateNetwork();
-	}
-
-	public void generateNetwork() {
+	public NeuralNetwork(int inputSize, int outputSize) {
+		this.inputSize = inputSize;
+		this.outputSize = outputSize;
 		this.layers = new ArrayList<>();
-		
-		this.layers.add(new FCLayer(INPUT_SIZE, 40, FCLayer.ACTIVATION_TYPE_SIGMOID));
-		this.layers.add(new FCLayer(40, 30, FCLayer.ACTIVATION_TYPE_SIGMOID));
-		this.layers.add(new FCLayer(30, OUTPUT_SIZE, FCLayer.ACTIVATION_TYPE_SIGMOID));
-		
 	}
 
 	public double[] forwardPropogate(double[] input) {
@@ -54,9 +33,9 @@ public class NeuralNetwork {
 		
 		FCLayer fl = (FCLayer) this.layers.get(this.layers.size() - 1);
 		
-		double[] ans = new double[OUTPUT_SIZE];
+		double[] ans = new double[outputSize];
 		
-		for(int i = 0; i < OUTPUT_SIZE; i++) {
+		for(int i = 0; i < outputSize; i++) {
 			ans[i] = fl.outputNodes[i];
 		}
 		

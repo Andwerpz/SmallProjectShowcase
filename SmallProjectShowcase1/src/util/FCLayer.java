@@ -23,7 +23,8 @@ public class FCLayer extends Layer{
 	
 	public int activationType;
 	
-	public FCLayer(int inputNodeAmt, int outputNodeAmt, int activationType) {
+	public FCLayer(NeuralNetwork net, int inputNodeAmt, int outputNodeAmt, int activationType) {
+		super(net);
 		
 		this.activationType = activationType;
 		
@@ -31,8 +32,28 @@ public class FCLayer extends Layer{
 		this.outputNodeAmt = outputNodeAmt;
 		
 		this.generate(inputNodeAmt, outputNodeAmt);
+	}
+	
+	public FCLayer(NeuralNetwork net, FCLayer l) {
+		super(net);
 		
-		System.out.println(inputNodeAmt + " " + outputNodeAmt);
+		this.activationType = l.activationType;
+		this.inputNodeAmt = l.inputNodeAmt;
+		this.outputNodeAmt = l.outputNodeAmt;
+		
+		this.inputNodes = new double[inputNodeAmt];
+		this.outputNodes = new double[outputNodeAmt];
+		this.weights = new double[inputNodeAmt][outputNodeAmt];
+		
+		this.outputNodeDerivatives = new double[this.outputNodeAmt];
+		this.inputNodeDerivatives = new double[this.inputNodeAmt];
+		this.weightDerivatives = new double[this.inputNodeAmt][this.outputNodeAmt];
+		
+		for(int node = 0; node < inputNodeAmt; node++) {
+			for(int weight = 0; weight < outputNodeAmt; weight++) {
+				this.weights[node][weight] = l.weights[node][weight];
+			}
+		}
 	}
 	
 	public void generate(int inputNodeAmt, int outputNodeAmt) {
@@ -233,7 +254,7 @@ public class FCLayer extends Layer{
 		//adjust weights
 		for(int node = 0; node < this.weights.length; node++) {
 			for(int weight = 0; weight < this.weights[0].length; weight++) {
-				this.weights[node][weight] -= this.weightDerivatives[node][weight] * NeuralNetwork.LEARNING_RATE;
+				this.weights[node][weight] -= this.weightDerivatives[node][weight] * net.learningRate;
 			}
 		}
 	}
