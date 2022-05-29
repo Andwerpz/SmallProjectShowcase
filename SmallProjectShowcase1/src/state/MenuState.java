@@ -26,7 +26,7 @@ public class MenuState extends State{
 	public MenuState(StateManager gsm) {
 		super(gsm);
 		
-		sw = new MainScrollWindow(10, 10, MainPanel.WIDTH - 20, MainPanel.HEIGHT - 20, 800);
+		sw = new MainScrollWindow(10, 10, MainPanel.WIDTH - 20, MainPanel.HEIGHT - 20, 1000);
 		
 	}
 
@@ -113,7 +113,8 @@ class MainScrollWindow extends ScrollWindow{
 			"Driving Q Learning",
 			"Synthwave Scroller",
 			"Impulse Resolution",
-			"Fruit Ninja"
+			"Fruit Ninja",
+			"Isometric Map Maker"
 			};
 
 	public MainScrollWindow(int x, int y, int width, int height, int realHeight) {
@@ -198,6 +199,10 @@ class MainScrollWindow extends ScrollWindow{
 				
 			case "Fruit Ninja":
 				MainPanel.gsm.states.push(new FruitNinja(MainPanel.gsm));
+				break;
+				
+			case "Isometric Map Maker":
+				MainPanel.gsm.states.push(new IsoMapMaker(MainPanel.gsm));
 				break;
 			}
 		}

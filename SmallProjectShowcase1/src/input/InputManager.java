@@ -77,10 +77,18 @@ public class InputManager {
 		return null;
 	}
 	
-	public void mousePressed(MouseEvent arg0) {
+	/**
+	 * returns true if an input is pressed
+	 * @param arg0
+	 * @return
+	 */
+	
+	public boolean mousePressed(MouseEvent arg0) {
+		boolean pressed = false;
 		for(Input i : inputs) {
-			i.pressed(arg0);
+			pressed |= i.pressed(arg0);
 		}
+		return pressed;
 	}
 	
 	public void mouseReleased(MouseEvent arg0) {

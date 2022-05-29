@@ -6,6 +6,7 @@ import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
@@ -51,6 +52,18 @@ public class GraphicsTools {
 	public static void enableAntialiasing(Graphics g) {
 		Graphics2D g2 = (Graphics2D) g;
 		g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+	}
+	
+	public static BufferedImage scaleImage(BufferedImage img, int scale) {
+		if(scale < 1) {
+			return null;
+		}
+		
+		BufferedImage out = new BufferedImage(img.getWidth() * scale, img.getHeight() * scale, BufferedImage.TYPE_INT_ARGB);
+		Graphics gImg = out.getGraphics();
+		gImg.drawImage(img, 0, 0, out.getWidth(), out.getHeight(), null);
+		
+		return out;
 	}
 	
 	//ty MadProgrammer

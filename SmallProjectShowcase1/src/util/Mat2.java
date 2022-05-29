@@ -76,6 +76,26 @@ public class Mat2
 		m10 = m.m10;
 		m11 = m.m11;
 	}
+	
+	/**
+	 * Returns the determinant of this matrix.
+	 */
+	public double det() {
+		return m00 * m11 - m01 * m10;
+	}
+	
+	/**
+	 * Returns a new matrix that is the inverse of this matrix, or null if none exist.
+	 */
+	public Mat2 inv() {
+		double det = this.det();
+		if(det == 0) {
+			return null;
+		}
+		
+		det = 1d / det;
+		return new Mat2(m11 * det, -m01 * det, -m10 * det, m00 * det);
+	}
 
 	/**
 	 * Sets the values of this matrix to their absolute value.
