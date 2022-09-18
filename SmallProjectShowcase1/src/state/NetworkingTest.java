@@ -37,6 +37,7 @@ public class NetworkingTest extends State {
 	// -- CLIENT --
 	private boolean connectedToServer = false;
 	private Socket socket;
+	private PacketListener packetListener;
 	private DataInputStream dis;
 	private DataOutputStream dos;
 	
@@ -90,9 +91,10 @@ public class NetworkingTest extends State {
 
 	private boolean connect() {
 		try {
-			socket = new Socket(ip, port);
-			dos = new DataOutputStream(socket.getOutputStream());
-			dis = new DataInputStream(socket.getInputStream());
+			this.socket = new Socket(this.ip, this.port);
+			this.dos = new DataOutputStream(this.socket.getOutputStream());
+			this.dis = new DataInputStream(this.socket.getInputStream());
+			this.packetListener = new PacketListener(this.socket, "Client");
 		} catch (IOException e) {
 			System.out.println("Unable to connect to the address: " + ip + ":" + port + " | Starting a server");
 			this.isHosting = true;
@@ -114,29 +116,49 @@ public class NetworkingTest extends State {
 		this.im.tick(mouse2);
 		
 		if(this.connectedToServer) {
+			// -- WRITE --
 			try {
+				this.dos.writeInt(8);
 				this.dos.writeInt(mouse2.x);
 				this.dos.writeInt(mouse2.y);
 				this.dos.flush();
 			} catch(IOException e) {
 				e.printStackTrace();
+			} 
+			
+			// -- READ --
+			if(!this.packetListener.isConnected) {	//lost connection to server
+				this.packetListener.exit();
+				while(!this.connect());	//either reconnect, or make your own server
 			}
 			
-			try {
-				this.numConnectedClients = this.dis.readInt();
-				this.mousePositions.clear();
-				for(int i = 0; i < this.numConnectedClients; i++) {
-					this.mousePositions.add(new Point(this.dis.readInt(), this.dis.readInt()));
-				}
-			} catch (IOException e) {
-				//likely a connection reset. 
-				if(this.isHosting) {
-					System.out.println("BAD HOST");
-					this.networkingTestServer.exit();
-					this.isHosting = false;
-				}
-				while(!this.connect());
+			byte[] packet = this.packetListener.getPacket();
+			this.numConnectedClients = this.packetListener.readInt(packet, 0);
+			int ptr = 4;
+			this.mousePositions.clear();
+			for(int i = 0; i < this.numConnectedClients; i++) {
+				int mouseX = this.packetListener.readInt(packet, ptr);
+				int mouseY = this.packetListener.readInt(packet, ptr + 4);
+				ptr += 8;
+				this.mousePositions.add(new Point(mouseX, mouseY));
 			}
+//			try {
+//				int packetSize = this.dis.readInt();
+//				this.numConnectedClients = this.dis.readInt();
+//				this.mousePositions.clear();
+//				for(int i = 0; i < this.numConnectedClients; i++) {
+//					this.mousePositions.add(new Point(this.dis.readInt(), this.dis.readInt()));
+//				}
+//				
+//			} catch (IOException e) {
+//				//likely a connection reset. 
+//				if(this.isHosting) {
+//					System.out.println("BAD HOST");
+//					this.networkingTestServer.exit();
+//					this.isHosting = false;
+//				}
+//				while(!this.connect());
+//			}
 		}
 		
 	}
@@ -165,6 +187,13 @@ public class NetworkingTest extends State {
 	@Override
 	public void keyPressed(KeyEvent arg0) {
 		this.im.keyPressed(arg0);
+		
+		if(arg0.getKeyCode() == KeyEvent.VK_ESCAPE) {
+			if(this.networkingTestServer != null) {
+				this.networkingTestServer.exit();
+			}
+			this.exit();
+		}
 	}
 
 	@Override
@@ -194,6 +223,9 @@ public class NetworkingTest extends State {
 			this.port = Integer.parseInt(this.im.getText("tf_port"));
 			if(this.networkingTestServer != null) {
 				this.networkingTestServer.exit();
+			}
+			if(this.packetListener != null) {
+				this.packetListener.exit();
 			}
 			this.isHosting = false;
 			while(!this.connect());
@@ -232,6 +264,9 @@ public class NetworkingTest extends State {
 		private boolean isRunning = true;
 		private Thread thread;
 		
+		private int FPS = 60;
+		private long targetTime = 1000 / FPS;
+		
 		private String ip;
 		private int port;
 		
@@ -239,6 +274,7 @@ public class NetworkingTest extends State {
 		
 		private ServerSocket serverSocket;
 		private ArrayList<Socket> clientSockets;
+		private ArrayList<PacketListener> packetListeners;
 		
 		public NetworkingTestServer(String ip, int port) {
 			this.ip = ip;
@@ -252,6 +288,7 @@ public class NetworkingTest extends State {
 			}
 			
 			this.clientSockets = new ArrayList<>();
+			this.packetListeners = new ArrayList<>();
 			this.serverRequestListener = new ServerRequestListener(this.serverSocket);
 			
 			this.start();
@@ -263,46 +300,87 @@ public class NetworkingTest extends State {
 		}
 
 		public void run() {
-			while(this.isRunning) {
-				this.clientSockets.addAll(this.serverRequestListener.getNewClients());
+			long start, elapsed, wait;
+			while(isRunning) {
+				start = System.nanoTime();
 				
-				// -- READ --	//should open for whenever
-				ArrayList<Point> mousePositions = new ArrayList<>();
-				for(int i = this.clientSockets.size() - 1; i >= 0; i--) {
-					Socket s = this.clientSockets.get(i);
-					try {
-						DataInputStream dis = new DataInputStream(s.getInputStream());
-						mousePositions.add(new Point(dis.readInt(), dis.readInt()));
-					} catch(IOException e) {
-						//Client Disconnected
-						System.out.println("Client Disconnected");
-						this.clientSockets.remove(i);
-					}
+				tick();
+				
+				elapsed = System.nanoTime() - start;
+				wait = targetTime - elapsed / 1000000;
+				
+				if(wait < 0) {
+					wait = 5;
 				}
 				
-				// -- WRITE --	//should run at set tickrate
-				for(int i = this.clientSockets.size() - 1; i >= 0; i--) {
-					Socket s = this.clientSockets.get(i);
-					try {
-						DataOutputStream dos = new DataOutputStream(s.getOutputStream());
-						
-						dos.writeInt(this.clientSockets.size());
-						for(Point p : mousePositions) {
-							dos.writeInt(p.x);
-							dos.writeInt(p.y);
-						}
-						dos.flush();
-					} catch(IOException e) {
-						e.printStackTrace();
-					}
+				try {
+					this.thread.sleep(wait);
+				} catch(Exception e) {
+					e.printStackTrace();
 				}
-				
+			}
+		}
+		
+		public void tick() {
+			if(this.serverRequestListener.hasNewClients()) {
+				ArrayList<Socket> newClients = this.serverRequestListener.getNewClients();
+				for(Socket s : newClients) {
+					PacketListener l = new PacketListener(s, "Server");
+					this.clientSockets.add(s);
+					this.packetListeners.add(l);
+				}
+			}
+			
+			// -- READ --	//should open for whenever
+			ArrayList<Point> mousePositions = new ArrayList<>();
+			for(int i = this.clientSockets.size() - 1; i >= 0; i--) {
+				if(!this.packetListeners.get(i).isRunning) {
+					//client disconnected
+					System.out.println("Client disconnected");
+					this.clientSockets.remove(i);
+					this.packetListeners.remove(i);
+				}
+				byte[] packet = this.packetListeners.get(i).getPacket();
+				if(packet.length >= 8) {
+					int mouseX = this.packetListeners.get(i).readInt(packet, 0);
+					int mouseY = this.packetListeners.get(i).readInt(packet, 4);
+					mousePositions.add(new Point(mouseX, mouseY));
+				}
+			}
+			
+			int packetSize = 4 + mousePositions.size() * 8;
+			
+			// -- WRITE --	//should run at set tickrate
+			for(int i = this.clientSockets.size() - 1; i >= 0; i--) {
+				Socket s = this.clientSockets.get(i);
+				try {
+					DataOutputStream dos = new DataOutputStream(s.getOutputStream());
+					
+					dos.writeInt(packetSize);
+					dos.writeInt(this.clientSockets.size());
+					for(Point p : mousePositions) {
+						dos.writeInt(p.x);
+						dos.writeInt(p.y);
+					}
+					dos.flush();
+				} catch(IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		
 		public void exit() {
 			System.out.println("Closing server at " + ip + ":" + port);
 			this.serverRequestListener.exit();
+			
+			for(int i = 0; i < this.clientSockets.size(); i++) {
+				try {
+					this.packetListeners.get(i).exit();
+					this.clientSockets.get(i).close();
+				} catch(IOException e) {
+					e.printStackTrace();
+				}
+			}
 			
 			try {
 				this.serverSocket.close();
@@ -314,6 +392,77 @@ public class NetworkingTest extends State {
 			this.isRunning = false;
 		}
 		
+	}
+	
+	class PacketListener implements Runnable {
+		private boolean isRunning = true;
+		private Thread thread;
+		private String name;
+		
+		private Socket socket;	//socket on which to listen for packets
+		private byte[] packet;
+		private boolean isConnected;
+		
+		public PacketListener(Socket socket, String name) {
+			this.socket = socket;
+			this.packet = new byte[0];
+			this.name = name;
+			this.isConnected = true;
+			
+			this.start();
+		}
+		
+		private void start() {
+			this.thread = new Thread(this);
+			this.thread.start();
+		}
+		
+		public void run() {
+			while(this.isRunning) {
+				this.listenForPackets();
+			}
+		}
+		
+		public byte[] getPacket() {
+			return this.packet;
+		}
+		
+		public int readInt(byte[] packet, int start) {
+			int ans = 0;
+			if(packet.length < start + 4) {	//not enough bytes to read from start
+				return 0;
+			}
+			for(int i = start; i < start + 4; i++) {
+				ans <<= 8;
+				ans |= (int) packet[i] & 0xFF;
+			}
+			return ans;
+		}
+		
+		private void listenForPackets() {
+			try {
+				DataInputStream dis = new DataInputStream(this.socket.getInputStream());
+				int packetSize = dis.readInt();
+				this.packet = this.readNBytes(packetSize, dis);
+				//System.out.println(this.name + " read packet of size " + packetSize);
+			} catch(IOException e) {
+				//probably closed connection
+				e.printStackTrace();
+				this.isConnected = false;
+			}
+		}
+		
+		private byte[] readNBytes(int n, DataInputStream dis) throws IOException {
+			byte[] packet = new byte[n];
+			for(int i = 0; i < n; i++) {
+				packet[i] = dis.readByte();
+			}
+			return packet;
+		}
+		
+		public void exit() {
+			this.isRunning = false;
+		}
 	}
 	
 	class ServerRequestListener implements Runnable {
@@ -343,10 +492,14 @@ public class NetworkingTest extends State {
 			}
 		}
 		
+		public boolean hasNewClients() {
+			return this.newClients.size() != 0;
+		}
+		
 		public ArrayList<Socket> getNewClients(){
 			ArrayList<Socket> out = new ArrayList<>();
 			out.addAll(this.newClients);
-			this.newClients.clear();
+			this.newClients = new ArrayList<>();
 			return out;
 		}
 		
