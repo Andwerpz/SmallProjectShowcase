@@ -36,6 +36,7 @@ public class NetworkingTest extends State {
 	
 	// -- CLIENT --
 	private boolean connectedToServer = false;
+	private boolean connectionAttemptFailed = false;
 	private Socket socket;
 	private PacketListener packetListener;
 	private DataInputStream dis;
@@ -56,9 +57,13 @@ public class NetworkingTest extends State {
 		this.im.addInput(new Button(10, 40, 100, 25, "Copy Local IP", "btn_copy_local_ip"));
 		this.im.addInput(new Button(10, 70, 100, 25, "Copy Public IP", "btn_copy_public_ip"));
 		
-		this.im.addInput(new TextField(10, 110, 100, "IP", "tf_ip"));
-		this.im.addInput(new TextField(10, 140, 100, "Port", "tf_port"));
-		this.im.addInput(new Button(10, 170, 100, 25, "Connect", "btn_connect"));
+		this.im.addInput(new TextField(10, 110, 100, "IP", "tf_connect_ip"));
+		this.im.addInput(new TextField(10, 130, 100, "Port", "tf_connect_port"));
+		this.im.addInput(new Button(10, 150, 100, 25, "Connect", "btn_connect"));
+		
+		this.im.addInput(new TextField(10, 190, 100, "IP", "tf_host_port"));
+		this.im.addInput(new Button(10, 210, 100, 25, "Host", "btn_start_hosting"));
+		this.im.addInput(new Button(10, 240, 100, 25, "Stop Hosting", "btn_stop_hosting"));
 		
 		this.mousePositions = new ArrayList<>();
 
@@ -90,20 +95,36 @@ public class NetworkingTest extends State {
 	}
 
 	private boolean connect() {
+		this.connectionAttemptFailed = false;
 		try {
 			this.socket = new Socket(this.ip, this.port);
 			this.dos = new DataOutputStream(this.socket.getOutputStream());
 			this.dis = new DataInputStream(this.socket.getInputStream());
-			this.packetListener = new PacketListener(this.socket, "Client");
 		} catch (IOException e) {
-			System.out.println("Unable to connect to the address: " + ip + ":" + port + " | Starting a server");
-			this.isHosting = true;
-			this.networkingTestServer = new NetworkingTestServer(ip, port);
+			this.connectionAttemptFailed = true;
+			System.out.println("Unable to connect to the address: " + ip + ":" + port);
 			return false;
 		}
 		System.out.println("Successfully connected to the address: " + ip + ":" + port);
 		this.connectedToServer = true;
+		this.packetListener = new PacketListener(this.socket, "Client");
 		return true;
+	}
+	
+	private void startHosting(int port) {
+		this.isHosting = true;
+		this.networkingTestServer = new NetworkingTestServer(this.localIPAddress, port);
+		this.ip = this.localIPAddress;
+		this.port = port;
+		System.out.println("Starting a server at " + ip + ":" + port);
+		this.connect();
+	}
+	
+	private void stopHosting() {
+		this.isHosting = false;
+		if(this.networkingTestServer != null) {
+			this.networkingTestServer.exit();
+		}
 	}
 
 	@Override
@@ -127,9 +148,9 @@ public class NetworkingTest extends State {
 			} 
 			
 			// -- READ --
-			if(!this.packetListener.isConnected) {	//lost connection to server
+			if(this.packetListener == null || !this.packetListener.isConnected) {	//lost connection to server
 				this.packetListener.exit();
-				while(!this.connect());	//either reconnect, or make your own server
+				this.connectedToServer = false;
 			}
 			
 			byte[] packet = this.packetListener.getPacket();
@@ -142,23 +163,6 @@ public class NetworkingTest extends State {
 				ptr += 8;
 				this.mousePositions.add(new Point(mouseX, mouseY));
 			}
-//			try {
-//				int packetSize = this.dis.readInt();
-//				this.numConnectedClients = this.dis.readInt();
-//				this.mousePositions.clear();
-//				for(int i = 0; i < this.numConnectedClients; i++) {
-//					this.mousePositions.add(new Point(this.dis.readInt(), this.dis.readInt()));
-//				}
-//				
-//			} catch (IOException e) {
-//				//likely a connection reset. 
-//				if(this.isHosting) {
-//					System.out.println("BAD HOST");
-//					this.networkingTestServer.exit();
-//					this.isHosting = false;
-//				}
-//				while(!this.connect());
-//			}
 		}
 		
 	}
@@ -171,7 +175,12 @@ public class NetworkingTest extends State {
 			g.drawString(this.isHosting? "HOST" : "CLIENT", 10, 30);
 		}
 		else {
-			g.drawString("Not Connected to a Server", 10, 10);
+			if(this.connectionAttemptFailed) {
+				g.drawString("Connection Attempt Failed", 10, 10);
+			}
+			else {
+				g.drawString("Not Connected to a Server", 10, 10);
+			}
 		}
 		for(Point p : this.mousePositions) {
 			g.drawRect(p.x - 2, p.y - 2, 4, 4);
@@ -219,16 +228,21 @@ public class NetworkingTest extends State {
 			break;
 			
 		case "btn_connect":
-			this.ip = this.im.getText("tf_ip");
-			this.port = Integer.parseInt(this.im.getText("tf_port"));
-			if(this.networkingTestServer != null) {
-				this.networkingTestServer.exit();
-			}
+			this.ip = this.im.getText("tf_connect_ip");
+			this.port = Integer.parseInt(this.im.getText("tf_connect_port"));
 			if(this.packetListener != null) {
 				this.packetListener.exit();
 			}
-			this.isHosting = false;
-			while(!this.connect());
+			this.connect();
+			break;
+			
+		case "btn_start_hosting":
+			this.startHosting(Integer.parseInt(this.im.getText("tf_host_port")));
+			break;
+			
+		case "btn_stop_hosting":
+			this.stopHosting();
+			break;
 		}
 	}
 
