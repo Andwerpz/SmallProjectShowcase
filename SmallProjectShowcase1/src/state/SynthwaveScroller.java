@@ -52,7 +52,6 @@ public class SynthwaveScroller extends State {
 	// BACKGROUND
 	Color background_color2 = new Color(232, 52, 229);
 	Color background_color1 = new Color(10, 10, 30);
-	//Color background_color1 = Color.BLACK;
 
 	// SUN
 	int sun_size = 300;
@@ -106,10 +105,8 @@ public class SynthwaveScroller extends State {
 			carpenter_brut = new WavFile(file);
 			sample_rate = carpenter_brut.getSampleRate();
 		} catch (UnsupportedAudioFileException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		carpenter_brut.play();
@@ -233,9 +230,7 @@ public class SynthwaveScroller extends State {
 			}
 		}
 
-		// we can just draw landscape back to front, no need for calculating surface
-		// normals.
-		
+		// we can just draw landscape back to front, no need for calculating surface normals.
 		//we also need to draw from out to in, eg prioritizing high abs val x. 
 		g2D.setStroke(new BasicStroke((float) 0.5));
 		for (int i = landscape_length - 1; i > 0; i--) {
@@ -279,7 +274,7 @@ public class SynthwaveScroller extends State {
 //		for(int i = 0; i < waveform.size(); i++) {
 //			g.fillRect(i, 0, 1, (int) (waveform.get(i) * 200));
 //		}
-//		
+		
 		if(waveform.size() >= MainPanel.WIDTH) {
 			waveform.clear();
 		}

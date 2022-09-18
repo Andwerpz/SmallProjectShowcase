@@ -114,7 +114,8 @@ class MainScrollWindow extends ScrollWindow{
 			"Synthwave Scroller",
 			"Impulse Resolution",
 			"Fruit Ninja",
-			"Isometric Map Maker"
+			"Isometric Map Maker",
+			"Networking Test"
 			};
 
 	public MainScrollWindow(int x, int y, int width, int height, int realHeight) {
@@ -203,6 +204,10 @@ class MainScrollWindow extends ScrollWindow{
 				
 			case "Isometric Map Maker":
 				MainPanel.gsm.states.push(new IsoMapMaker(MainPanel.gsm));
+				break;
+				
+			case "Networking Test":
+				MainPanel.gsm.states.push(new NetworkingTest(MainPanel.gsm));
 				break;
 			}
 		}
