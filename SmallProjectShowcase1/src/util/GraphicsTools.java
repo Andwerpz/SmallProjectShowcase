@@ -133,28 +133,6 @@ public class GraphicsTools {
 	    return output;
 	}
 	
-	//loads image from filepath
-	//filepath is relative to this class
-	public static BufferedImage loadImage(String filepath) {
-		BufferedImage img = null;
-		InputStream is;
-		
-		System.out.print("LOADING IMAGE: " + filepath);
-		
-		try {
-			
-			is = GraphicsTools.class.getResourceAsStream(filepath);
-			img = ImageIO.read(is);
-			
-			System.out.println(" SUCCESS");
-			
-		} catch(IOException e) {
-			System.out.println(" FAILED");
-		}
-		
-		return img;
-	}
-	
 	//loads images from spritesheet
 	//goes from top left to bottom right, going horizontally first
 	public static ArrayList<BufferedImage> loadAnimation(String filepath, int width, int height){
@@ -197,5 +175,34 @@ public class GraphicsTools {
 	    BufferedImage newRGB = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 	    newRGB .createGraphics().drawImage(img, 0, 0, width, height, null);
 	    return newRGB;
+	}
+	
+	//loads img with filepath starting from root; C:
+	//assumes file is in /res folder
+	public static BufferedImage loadImage(String filepath) {
+		String resDirectory = SystemUtils.getWorkingDirectory() + "\\res\\";
+		BufferedImage img = null;
+		
+		System.out.print("LOADING IMAGE: " + resDirectory + filepath);
+		
+		try {
+			img = ImageIO.read(new File(resDirectory + filepath));
+			System.out.println(" SUCCESS");
+		} catch(IOException e) {
+			System.out.println(" FAILED");
+		}
+		
+		return img;
+	}
+	
+	public static File loadFile(String filepath) {
+		String resDirectory = SystemUtils.getWorkingDirectory() + "\\res\\";
+		
+		System.out.print("LOADING FILE: " + resDirectory + filepath);
+		File file = null;
+		file = new File(resDirectory + filepath);
+		System.out.println(" SUCCESS");
+		
+		return file;
 	}
 }

@@ -45,8 +45,7 @@ public class IsoMapMaker extends State {
 
 		im = new InputManager();
 
-		ArrayList<BufferedImage> originalSprites = GraphicsTools.loadAnimation("/various_tiles.png", originalSpriteSize,
-				originalSpriteSize);
+		ArrayList<BufferedImage> originalSprites = GraphicsTools.loadAnimation("various_tiles.png", originalSpriteSize, originalSpriteSize);
 		sprites = new ArrayList<>();
 		for (int i = 0; i < originalSprites.size(); i++) {
 			BufferedImage img = originalSprites.get(i);

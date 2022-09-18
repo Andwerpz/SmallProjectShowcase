@@ -67,7 +67,7 @@ public class KernelConvolution extends State{
 	public KernelConvolution(StateManager gsm) {
 		super(gsm);
 		
-		this.img = GraphicsTools.loadImage("/bike.png");
+		this.img = GraphicsTools.loadImage("bike.png");
 		//this.result = convoluteImage(img, sobelHoriz, coefficient);
 		this.result = this.sobelEdgeDetect(img);
 	}

@@ -100,9 +100,7 @@ public class SynthwaveScroller extends State {
 		super(gsm);
 		
 		try {
-			File dir = new File("./");
-			File file = new File(dir.getAbsolutePath() + "\\res\\EvenIfTheWholeWorldWereToLaughAtMe.wav");
-			carpenter_brut = new WavFile(file);
+			carpenter_brut = new WavFile(GraphicsTools.loadFile("EvenIfTheWholeWorldWereToLaughAtMe.wav"));
 			sample_rate = carpenter_brut.getSampleRate();
 		} catch (UnsupportedAudioFileException e) {
 			e.printStackTrace();

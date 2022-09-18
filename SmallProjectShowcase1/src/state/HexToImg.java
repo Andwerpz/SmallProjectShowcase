@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import input.InputManager;
 import input.SliderButton;
 import main.MainPanel;
+import util.GraphicsTools;
 
 public class HexToImg extends State {
 	
@@ -43,9 +44,7 @@ public class HexToImg extends State {
 	public static int[] loadText() {
 		ArrayList<Integer> a = new ArrayList<>();
 		try {
-			
-			InputStream is = HexToImg.class.getResourceAsStream("/testbmp.txt");
-			BufferedReader fin = new BufferedReader(new InputStreamReader(is));
+			BufferedReader fin = new BufferedReader(new FileReader(GraphicsTools.loadFile("testbmp.txt")));
 			//BufferedReader fin = new BufferedReader(new FileReader("C:\\-=+GAME+=-\\-- Github --\\SmallProjectShowcase\\SmallProjectShowcase1\\res\\testbmp.txt"));
 			
 			//read in one line

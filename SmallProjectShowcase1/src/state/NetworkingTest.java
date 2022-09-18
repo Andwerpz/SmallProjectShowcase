@@ -266,7 +266,7 @@ public class NetworkingTest extends State {
 			while(this.isRunning) {
 				this.clientSockets.addAll(this.serverRequestListener.getNewClients());
 				
-				// -- READ --
+				// -- READ --	//should open for whenever
 				ArrayList<Point> mousePositions = new ArrayList<>();
 				for(int i = this.clientSockets.size() - 1; i >= 0; i--) {
 					Socket s = this.clientSockets.get(i);
@@ -280,7 +280,7 @@ public class NetworkingTest extends State {
 					}
 				}
 				
-				// -- WRITE --
+				// -- WRITE --	//should run at set tickrate
 				for(int i = this.clientSockets.size() - 1; i >= 0; i--) {
 					Socket s = this.clientSockets.get(i);
 					try {
