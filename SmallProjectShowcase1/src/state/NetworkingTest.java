@@ -67,12 +67,10 @@ public class NetworkingTest extends State {
 		
 		this.mousePositions = new ArrayList<>();
 
-		// Returns the instance of InetAddress containing local host name and address
 		InetAddress localhost = null;
 		try {
 			localhost = InetAddress.getLocalHost();
 		} catch (UnknownHostException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
 
@@ -348,11 +346,19 @@ public class NetworkingTest extends State {
 			// -- READ --	//should open for whenever
 			ArrayList<Point> mousePositions = new ArrayList<>();
 			for(int i = this.clientSockets.size() - 1; i >= 0; i--) {
-				if(!this.packetListeners.get(i).isRunning) {
+				if(!this.packetListeners.get(i).isConnected()) {
 					//client disconnected
 					System.out.println("Client disconnected");
-					this.clientSockets.remove(i);
+					this.packetListeners.get(i).exit();
 					this.packetListeners.remove(i);
+					try {
+						this.clientSockets.get(i).close();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					this.clientSockets.remove(i);
+					continue;
 				}
 				byte[] packet = this.packetListeners.get(i).getPacket();
 				if(packet.length >= 8) {
@@ -417,11 +423,15 @@ public class NetworkingTest extends State {
 		private byte[] packet;
 		private boolean isConnected;
 		
+		private long lastPacketTime;
+		private long timeoutMillis = 5000;
+		
 		public PacketListener(Socket socket, String name) {
 			this.socket = socket;
 			this.packet = new byte[0];
 			this.name = name;
 			this.isConnected = true;
+			this.lastPacketTime = System.currentTimeMillis();
 			
 			this.start();
 		}
@@ -439,6 +449,11 @@ public class NetworkingTest extends State {
 		
 		public byte[] getPacket() {
 			return this.packet;
+		}
+		
+		public boolean isConnected() {
+			long timeFromLastPacket = System.currentTimeMillis() - lastPacketTime;
+			return timeFromLastPacket < timeoutMillis && isConnected;
 		}
 		
 		public int readInt(byte[] packet, int start) {
@@ -464,6 +479,7 @@ public class NetworkingTest extends State {
 				e.printStackTrace();
 				this.isConnected = false;
 			}
+			this.lastPacketTime = System.currentTimeMillis();
 		}
 		
 		private byte[] readNBytes(int n, DataInputStream dis) throws IOException {
