@@ -30,6 +30,15 @@ public class InputManager {
 		}
 	}
 	
+	public Input getInput(String name) {
+		for(Input i : inputs) {
+			if(i.name.equals(name)) {
+				return i;
+			}
+		}
+		return null;
+	}
+	
 	//gets value of slider button
 	public int getVal(String name) {
 		for(Input i : inputs) {

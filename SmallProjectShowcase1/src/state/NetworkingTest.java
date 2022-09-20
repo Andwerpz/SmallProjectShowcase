@@ -79,16 +79,21 @@ public class NetworkingTest extends State {
 		this.im.addInput(new TextField(10, 110, 100, "IP", "tf_connect_ip"));
 		this.im.addInput(new TextField(10, 130, 100, "Port", "tf_connect_port"));
 		this.im.addInput(new Button(10, 150, 100, 25, "Connect", "btn_connect"));
+		this.im.addInput(new Button(10, 180, 100, 25, "Disconnect", "btn_disconnect"));
 		
-		this.im.addInput(new TextField(10, 190, 100, "Port", "tf_host_port"));
-		this.im.addInput(new Button(10, 210, 100, 25, "Host", "btn_start_hosting"));
-		this.im.addInput(new Button(10, 240, 100, 25, "Stop Hosting", "btn_stop_hosting"));
+		this.im.addInput(new TextField(10, 220, 100, "Port", "tf_host_port"));
+		this.im.addInput(new Button(10, 240, 100, 25, "Host", "btn_start_hosting"));
+		this.im.addInput(new Button(10, 270, 100, 25, "Stop Hosting", "btn_stop_hosting"));
 		
 		int r = (int) (Math.random() * 256);
 		int g = (int) (Math.random() * 256);
 		int b = (int) (Math.random() * 256);
+		int rgb = (r << 16) + (g << 8) + (b << 0);
 		
 		this.clientColor = new Color(r / 255f, g / 255f, b / 255f);
+		this.im.addInput(new TextField(10, 320, 100, "RGB Hex", "tf_rgb_hex"));
+		this.im.setText("tf_rgb_hex", Integer.toHexString(rgb));
+		
 		this.leaderboard = new ArrayList<>();
 		
 		this.mousePositions = new ArrayList<>();
@@ -136,7 +141,22 @@ public class NetworkingTest extends State {
 		this.connectedToServer = true;
 		this.packetListener = new PacketListener(this.socket, "Client");
 		this.drawnLines = new ArrayList<>();
+		((TextField) this.im.getInput("tf_rgb_hex")).disable();
 		return true;
+	}
+	
+	private void disconnect() {
+		this.connectedToServer = false;
+		this.connectionAttemptFailed = false;
+		
+		try {
+			this.socket.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		this.packetListener.exit();
+		((TextField) this.im.getInput("tf_rgb_hex")).enable();
 	}
 	
 	private void startHosting(int port) {
@@ -201,8 +221,7 @@ public class NetworkingTest extends State {
 			
 			// -- READ --
 			if(this.packetListener == null || !this.packetListener.isConnected) {	//lost connection to server
-				this.packetListener.exit();
-				this.connectedToServer = false;
+				this.disconnect();
 			}
 			
 			while(this.packetListener.hasPacket()) {
@@ -282,18 +301,18 @@ public class NetworkingTest extends State {
 		g.drawImage(this.canvas, this.canvasX, this.canvasY, null);
 		g.drawRect(canvasX, canvasY, canvasWidth, canvasHeight);
 		
-		g.drawString("Color: ", 10, 285);
+		g.drawString("Color: ", 10, 315);
 		g.setColor(this.clientColor);
-		g.fillRect(100, 275, 10, 10);
+		g.fillRect(100, 305, 10, 10);
 		g.setColor(Color.BLACK);
-		g.drawRect(100, 275, 10, 10);
+		g.drawRect(100, 305, 10, 10);
 		
 		if(this.connectedToServer) {
 			g.drawString(numConnectedClients + " client" + (numConnectedClients > 1? "s" : "") + " connected", 10, 10);
 			g.drawString(this.isHosting? "HOST" : "CLIENT", 10, 30);
 			
 			//leaderboard
-			int y = 300;
+			int y = 351;
 			int increment = 15;
 			for(int i = 0; i < this.leaderboard.size(); i++) {
 				int[] a = this.leaderboard.get(i);
@@ -339,6 +358,7 @@ public class NetworkingTest extends State {
 			if(this.packetListener != null) {
 				this.packetListener.exit();
 			}
+			this.disconnect();
 			this.exit();
 		}
 		
@@ -377,6 +397,10 @@ public class NetworkingTest extends State {
 					this.packetListener.exit();
 				}
 				this.connect();
+				break;
+				
+			case "btn_disconnect":
+				this.disconnect();
 				break;
 				
 			case "btn_start_hosting":
@@ -443,6 +467,10 @@ public class NetworkingTest extends State {
 		private BufferedImage canvas;	//to keep track of progress
 		
 		private LeaderboardCalculator leaderboardCalculator;
+		
+		private long noClientTimeoutMillis = 15000;
+		private long firstNoClientTime = 0;
+		private boolean prevTickNoClients = false;
 		
 		public NetworkingTestServer(String ip, int port) {
 			this.ip = ip;
@@ -589,6 +617,22 @@ public class NetworkingTest extends State {
 				} catch(IOException e) {
 					e.printStackTrace();
 				}
+			}
+			
+			if(this.clientSockets.size() == 0) {	//no more clients :((
+				if(this.prevTickNoClients) {
+					if(System.currentTimeMillis() - this.firstNoClientTime > this.noClientTimeoutMillis) {
+						System.out.println("No clients, shutting down server");
+						this.exit();
+					}
+				}
+				else {
+					this.firstNoClientTime = System.currentTimeMillis();
+					this.prevTickNoClients = true;
+				}
+			}
+			else {
+				this.prevTickNoClients = false;
 			}
 		}
 		

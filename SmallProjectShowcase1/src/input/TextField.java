@@ -30,6 +30,7 @@ public class TextField extends Input{
 	private boolean selected = false;
 	private boolean hovered = false;
 	private boolean pressed = false;
+	private boolean disabled = false;
 	private Font font;
 	private HashSet<Integer> pressedKeys;
 
@@ -37,6 +38,7 @@ public class TextField extends Input{
 	private double selectedAlpha = 0.1;
 	private double pressedAlpha = 0.5;
 	private double hintTextAlpha = 0.35;
+	private double disabledAlpha = 0.90;
 
 	private Color selectedColor;
 	private Color textColor;
@@ -78,8 +80,14 @@ public class TextField extends Input{
 		Graphics2D g2 = (Graphics2D) g;
 		g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 		g2.setFont(font);
+		
+		if(this.disabled) {
+			g2.setComposite(GraphicsTools.makeComposite(disabledAlpha));
+			g2.setColor(selectedColor);
+			g2.fillRect(x, y, width, height);
+		}
 
-		if (this.pressed) {
+		else if (this.pressed) {
 			g2.setComposite(GraphicsTools.makeComposite(pressedAlpha));
 			g2.setColor(selectedColor);
 			g2.fillRect(x, y, width, height);
@@ -171,6 +179,9 @@ public class TextField extends Input{
 	}
 
 	public boolean pressed(MouseEvent m) {
+		if(this.disabled) {
+			return false;
+		}
 		Rectangle r = new Rectangle(x, y, width, height);
 		if (r.contains(new Point(m.getX(), m.getY()))) {
 			pressed = true;
@@ -181,6 +192,9 @@ public class TextField extends Input{
 	}
 
 	public boolean hovering(java.awt.Point m) {
+		if(this.disabled) {
+			return false;
+		}
 		Rectangle r = new Rectangle(x, y, width, height);
 		if (r.contains(m)) {
 			hovered = true;
@@ -191,6 +205,9 @@ public class TextField extends Input{
 	}
 
 	public boolean clicked(MouseEvent arg0) {
+		if(this.disabled) {
+			return false;
+		}
 		Rectangle r = new Rectangle(x, y, width, height);
 		if (r.contains(new Point(arg0.getX(), arg0.getY()))) {
 			this.selected = true;
@@ -199,6 +216,17 @@ public class TextField extends Input{
 		this.selected = false;
 		pressedKeys.clear();
 		return false;
+	}
+	
+	public void disable() {
+		this.selected = false;
+		this.pressed = false;
+		this.hovered = false;
+		this.disabled = true;
+	}
+	
+	public void enable() {
+		this.disabled = false;
 	}
 
 	public void keyPressed(KeyEvent arg0) {
