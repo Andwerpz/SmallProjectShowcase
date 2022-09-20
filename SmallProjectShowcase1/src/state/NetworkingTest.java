@@ -77,19 +77,24 @@ public class NetworkingTest extends State {
 		this.im.addInput(new TextField(10, 130, 100, "Port", "tf_connect_port"));
 		this.im.addInput(new Button(10, 150, 100, 25, "Connect", "btn_connect"));
 		
-		this.im.addInput(new TextField(10, 190, 100, "IP", "tf_host_port"));
+		this.im.addInput(new TextField(10, 190, 100, "Port", "tf_host_port"));
 		this.im.addInput(new Button(10, 210, 100, 25, "Host", "btn_start_hosting"));
 		this.im.addInput(new Button(10, 240, 100, 25, "Stop Hosting", "btn_stop_hosting"));
+		
+		int r = (int) (Math.random() * 256);
+		int g = (int) (Math.random() * 256);
+		int b = (int) (Math.random() * 256);
+		
+		this.clientColor = new Color(r / 255f, g / 255f, b / 255f);
+		int rgb = (r << 16) + (g << 8) + (b << 0);
+		
+		this.im.addInput(new TextField(10, 300, 100, "RGB Hex", "tf_rgb_hex"));
+		this.im.setText("tf_rgb_hex", Integer.toHexString(rgb));
 		
 		this.mousePositions = new ArrayList<>();
 		
 		this.canvas = new BufferedImage(this.canvasWidth, this.canvasHeight, BufferedImage.TYPE_INT_ARGB);
 		this.drawnLines = new ArrayList<>();
-		
-		float r = (float) Math.random();
-		float g = (float) Math.random();
-		float b = (float) Math.random();
-		this.clientColor = new Color(r, g, b);
 		
 		this.packetSender = new PacketSender();
 
@@ -251,6 +256,28 @@ public class NetworkingTest extends State {
 		this.im.draw(g);
 		g.drawImage(this.canvas, this.canvasX, this.canvasY, null);
 		g.drawRect(canvasX, canvasY, canvasWidth, canvasHeight);
+		
+		String hexColor = this.im.getText("tf_rgb_hex").toUpperCase();
+		boolean invalidHexString = false;
+		int rgb = this.clientColor.getRGB();
+		try {
+			rgb = Integer.parseInt(hexColor, 16);
+		} catch(NumberFormatException e) {
+			invalidHexString = true;
+		}
+		
+		this.clientColor = new Color(rgb);
+		
+		if(invalidHexString) {
+			g.drawString("Invalid Hex String", 10, 295);
+		}
+		else {
+			g.drawString("RGB: ", 10, 295);
+			g.setColor(this.clientColor);
+			g.fillRect(100, 285, 10, 10);
+			g.setColor(Color.BLACK);
+			g.drawRect(100, 285, 10, 10);
+		}
 		
 		if(this.connectedToServer) {
 			g.drawString(numConnectedClients + " client" + (numConnectedClients > 1? "s" : "") + " connected", 10, 10);

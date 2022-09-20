@@ -77,6 +77,15 @@ public class InputManager {
 		return null;
 	}
 	
+	public void setText(String name, String text) {
+		for(Input i : inputs) {
+			if(i instanceof TextField && i.name.equals(name)) {
+				TextField tf = (TextField) i;
+				tf.setText(text);
+			}
+		}
+	}
+	
 	/**
 	 * returns true if an input is pressed
 	 * @param arg0
