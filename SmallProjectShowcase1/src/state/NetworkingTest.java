@@ -187,6 +187,14 @@ public class NetworkingTest extends State {
 		
 		this.im.tick(mouse2);
 		
+		String hexColor = this.im.getText("tf_rgb_hex").toUpperCase();
+		try {
+			int rgb = Integer.parseInt(hexColor, 16);
+			this.clientColor = new Color(rgb);
+		} catch(NumberFormatException e) {
+			//invalid hex string
+		}
+		
 		if(this.mousePressed) {
 			int x1 = this.prevMouse.x - this.canvasX;
 			int y1 = this.prevMouse.y - this.canvasY;
