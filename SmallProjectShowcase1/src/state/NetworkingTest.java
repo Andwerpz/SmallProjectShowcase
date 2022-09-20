@@ -26,6 +26,7 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Queue;
 
 import input.Button;
@@ -47,6 +48,8 @@ public class NetworkingTest extends State {
 	private PacketListener packetListener;
 	private PacketSender packetSender;
 	private Color clientColor;
+	private int strokeWidth = 5;
+	private ArrayList<int[]> leaderboard;
 	
 	// -- SERVER / HOST --
 	private boolean isHosting = false;
@@ -86,10 +89,7 @@ public class NetworkingTest extends State {
 		int b = (int) (Math.random() * 256);
 		
 		this.clientColor = new Color(r / 255f, g / 255f, b / 255f);
-		int rgb = (r << 16) + (g << 8) + (b << 0);
-		
-		this.im.addInput(new TextField(10, 300, 100, "RGB Hex", "tf_rgb_hex"));
-		this.im.setText("tf_rgb_hex", Integer.toHexString(rgb));
+		this.leaderboard = new ArrayList<>();
 		
 		this.mousePositions = new ArrayList<>();
 		
@@ -135,12 +135,14 @@ public class NetworkingTest extends State {
 		System.out.println("Successfully connected to the address: " + ip + ":" + port);
 		this.connectedToServer = true;
 		this.packetListener = new PacketListener(this.socket, "Client");
-		this.canvas = new BufferedImage(this.canvasWidth, this.canvasHeight, BufferedImage.TYPE_INT_ARGB);
 		this.drawnLines = new ArrayList<>();
 		return true;
 	}
 	
 	private void startHosting(int port) {
+		if(this.isHosting) {
+			this.stopHosting();
+		}
 		this.isHosting = true;
 		this.networkingTestServer = new NetworkingTestServer(this.localIPAddress, port);
 		this.ip = this.localIPAddress;
@@ -174,10 +176,10 @@ public class NetworkingTest extends State {
 			Graphics gImg = this.canvas.getGraphics();
 			gImg.setColor(this.clientColor);
 			Graphics2D gImg2D = (Graphics2D) gImg;
-			gImg2D.setStroke(new BasicStroke(5, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+			gImg2D.setStroke(new BasicStroke(this.strokeWidth, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 			gImg.drawLine(x1, y1, x2, y2);
 			
-			this.drawnLines.add(new int[] {x1, y1, x2, y2, this.clientColor.getRGB()});
+			this.drawnLines.add(new int[] {x1, y1, x2, y2, this.clientColor.getRGB(), strokeWidth});
 		}
 		
 		if(this.connectedToServer) {
@@ -188,9 +190,7 @@ public class NetworkingTest extends State {
 				
 				this.packetSender.writeInt(this.drawnLines.size());
 				for(int[] a : this.drawnLines) {
-					for(int i = 0; i < 5; i++) {
-						this.packetSender.writeInt(a[i]);
-					}
+					this.packetSender.write(a);
 				}
 				this.packetSender.flush(this.socket);
 				
@@ -208,6 +208,8 @@ public class NetworkingTest extends State {
 			while(this.packetListener.hasPacket()) {
 				byte[] packet = this.packetListener.getPacket();
 				this.numConnectedClients = this.packetListener.readInt(packet, 0);
+				
+				//Mouse positions
 				int numMouses = this.packetListener.readInt(packet, 4);
 				int ptr = 8;
 				this.mousePositions.clear();
@@ -218,9 +220,9 @@ public class NetworkingTest extends State {
 					this.mousePositions.add(new Point(mouseX, mouseY));
 				}
 				
+				//Lines drawn
 				int numLines = this.packetListener.readInt(packet, ptr);
 				ptr += 4;
-				
 				if(packet.length - ptr < numLines * 20) {
 					System.out.println("LINE ERR " + numLines);
 					ptr = 0;
@@ -232,17 +234,40 @@ public class NetworkingTest extends State {
 				}
 				
 				for(int i = 0; i < numLines; i++) {
-					int[] line = new int[5];
-					for(int j = 0; j < 5; j++) {
+					int[] line = new int[6];
+					for(int j = 0; j < 6; j++) {
 						line[j] = this.packetListener.readInt(packet, ptr);
 						ptr += 4;
 					}
 					
+					int strokeWidth = line[5];
 					Graphics gImg = this.canvas.getGraphics();
 					gImg.setColor(new Color(line[4]));
 					Graphics2D gImg2D = (Graphics2D) gImg;
-					gImg2D.setStroke(new BasicStroke(5, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+					gImg2D.setStroke(new BasicStroke(strokeWidth, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 					gImg.drawLine(line[0], line[1], line[2], line[3]);
+				}
+				
+				//Update pixels
+				int numUpdatePixels = this.packetListener.readInt(packet, ptr);
+				ptr += 4;
+				for(int i = 0; i < numUpdatePixels; i++) {
+					int[] pixel = new int[3];
+					for(int j = 0; j < 3; j++) {
+						pixel[j] = this.packetListener.readInt(packet, ptr);
+						ptr += 4;
+					}
+					
+					this.canvas.setRGB(pixel[0], pixel[1], pixel[2]);
+				}
+				
+				//Leaderboard;
+				int numLeaderboardPositions = this.packetListener.readInt(packet, ptr);
+				ptr += 4;
+				this.leaderboard.clear();
+				for(int i = 0; i < numLeaderboardPositions; i++) {
+					this.leaderboard.add(this.packetListener.readNInts(packet, ptr, 2));
+					ptr += 8;
 				}
 			}
 			
@@ -257,31 +282,31 @@ public class NetworkingTest extends State {
 		g.drawImage(this.canvas, this.canvasX, this.canvasY, null);
 		g.drawRect(canvasX, canvasY, canvasWidth, canvasHeight);
 		
-		String hexColor = this.im.getText("tf_rgb_hex").toUpperCase();
-		boolean invalidHexString = false;
-		int rgb = this.clientColor.getRGB();
-		try {
-			rgb = Integer.parseInt(hexColor, 16);
-		} catch(NumberFormatException e) {
-			invalidHexString = true;
-		}
-		
-		this.clientColor = new Color(rgb);
-		
-		if(invalidHexString) {
-			g.drawString("Invalid Hex String", 10, 295);
-		}
-		else {
-			g.drawString("RGB: ", 10, 295);
-			g.setColor(this.clientColor);
-			g.fillRect(100, 285, 10, 10);
-			g.setColor(Color.BLACK);
-			g.drawRect(100, 285, 10, 10);
-		}
+		g.drawString("Color: ", 10, 285);
+		g.setColor(this.clientColor);
+		g.fillRect(100, 275, 10, 10);
+		g.setColor(Color.BLACK);
+		g.drawRect(100, 275, 10, 10);
 		
 		if(this.connectedToServer) {
 			g.drawString(numConnectedClients + " client" + (numConnectedClients > 1? "s" : "") + " connected", 10, 10);
 			g.drawString(this.isHosting? "HOST" : "CLIENT", 10, 30);
+			
+			//leaderboard
+			int y = 300;
+			int increment = 15;
+			for(int i = 0; i < this.leaderboard.size(); i++) {
+				int[] a = this.leaderboard.get(i);
+				g.drawString((i + 1) + " : " + a[1], 10, y);
+				if(a[0] >> 24 == 0) {
+					a[0] = Color.white.getRGB();
+				}
+				g.setColor(new Color(a[0]));
+				g.fillRect(100, y - 10, 10, 10);
+				g.setColor(Color.BLACK);
+				g.drawRect(100, y - 10, 10, 10);
+				y += increment;
+			}
 		}
 		else {
 			if(this.connectionAttemptFailed) {
@@ -315,6 +340,10 @@ public class NetworkingTest extends State {
 				this.packetListener.exit();
 			}
 			this.exit();
+		}
+		
+		else if(arg0.getKeyCode() == KeyEvent.VK_C) {
+			this.strokeWidth = this.strokeWidth == 5? 50 : 5;
 		}
 	}
 
@@ -409,6 +438,12 @@ public class NetworkingTest extends State {
 		private ArrayList<PacketListener> packetListeners;
 		private PacketSender packetSender;
 		
+		private int canvasWidth = 640;
+		private int canvasHeight = 550;
+		private BufferedImage canvas;	//to keep track of progress
+		
+		private LeaderboardCalculator leaderboardCalculator;
+		
 		public NetworkingTestServer(String ip, int port) {
 			this.ip = ip;
 			this.port = port;
@@ -424,6 +459,10 @@ public class NetworkingTest extends State {
 			this.packetListeners = new ArrayList<>();
 			this.serverRequestListener = new ServerRequestListener(this.serverSocket);
 			this.packetSender = new PacketSender();
+			
+			this.canvas = new BufferedImage(this.canvasWidth, this.canvasHeight, BufferedImage.TYPE_INT_ARGB);
+			
+			this.leaderboardCalculator = new LeaderboardCalculator(this.canvas);
 			
 			this.start();
 		}
@@ -493,11 +532,21 @@ public class NetworkingTest extends State {
 					int numLines = this.packetListeners.get(i).readInt(packet, 8);
 					int ptr = 12;
 					for(int j = 0; j < numLines; j++) {
-						int[] line = new int[5];
-						for(int k = 0; k < 5; k++) {
+						int[] line = new int[6];
+						for(int k = 0; k < 6; k++) {
 							line[k] = this.packetListeners.get(i).readInt(packet, ptr);
 							ptr += 4;
 						}
+						
+						//draw line on canvas
+						int strokeWidth = line[5];
+						Graphics gImg = this.canvas.getGraphics();
+						gImg.setColor(new Color(line[4]));
+						Graphics2D gImg2D = (Graphics2D) gImg;
+						gImg2D.setStroke(new BasicStroke(strokeWidth, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+						gImg.drawLine(line[0], line[1], line[2], line[3]);
+						
+						//save line to send to clients
 						newDrawnLines.add(line);
 					}
 				}
@@ -505,6 +554,8 @@ public class NetworkingTest extends State {
 			}
 			
 			// -- WRITE --	//should run at set tickrate
+			ArrayList<int[]> leaderboard = this.leaderboardCalculator.getLeaderboard();
+			
 			for(int i = this.clientSockets.size() - 1; i >= 0; i--) {
 				Socket s = this.clientSockets.get(i);
 				try {
@@ -517,10 +568,23 @@ public class NetworkingTest extends State {
 					
 					this.packetSender.writeInt(newDrawnLines.size());
 					for(int[] a : newDrawnLines) {
-						for(int j = 0; j < 5; j++) {
-							this.packetSender.writeInt(a[j]);
-						}
+						this.packetSender.write(a);
 					}
+					
+					int numUpdatePixels = 100;
+					this.packetSender.writeInt(numUpdatePixels);
+					for(int j = 0; j < numUpdatePixels; j++) {
+						int x = (int) (Math.random() * this.canvasWidth);
+						int y = (int) (Math.random() * this.canvasHeight);
+						int rgb = this.canvas.getRGB(x, y);
+						this.packetSender.write(new int[] {x, y, rgb});
+					}
+					
+					this.packetSender.writeInt(leaderboard.size());
+					for(int j = 0; j < leaderboard.size(); j++) {
+						this.packetSender.write(leaderboard.get(j));
+					}
+					
 					this.packetSender.flush(s);
 				} catch(IOException e) {
 					e.printStackTrace();
@@ -548,9 +612,60 @@ public class NetworkingTest extends State {
 				e.printStackTrace();
 			}
 			
+			this.leaderboardCalculator.exit();
+			
 			this.isRunning = false;
 		}
 		
+	}
+	
+	class LeaderboardCalculator implements Runnable {
+		private boolean isRunning = true;
+		private Thread thread;
+		
+		private ArrayList<int[]> leaderboard;
+		private BufferedImage canvas;	//stored as a pointer
+		
+		public LeaderboardCalculator(BufferedImage canvas) {
+			this.leaderboard = new ArrayList<>();
+			this.canvas = canvas;
+			this.start();
+		}
+		
+		private void start() {
+			this.thread = new Thread(this);
+			this.thread.start();
+		}
+		
+		public void run() {
+			while(this.isRunning) {
+				this.updateLeaderboard();
+			}
+		}
+		
+		public ArrayList<int[]> getLeaderboard(){
+			return this.leaderboard;
+		}
+		
+		private void updateLeaderboard() {
+			HashMap<Integer, Integer> map = new HashMap<>();
+			for(int i = 0; i < this.canvas.getWidth(); i++) {
+				for(int j = 0; j < this.canvas.getHeight(); j++) {
+					int rgb = this.canvas.getRGB(i, j);
+					map.put(rgb, map.getOrDefault(rgb, 0) + 1);
+				}
+			}
+			ArrayList<int[]> nextLeaderboard = new ArrayList<>();
+			for(int i : map.keySet()) {
+				nextLeaderboard.add(new int[] {i, map.get(i)});
+			}
+			nextLeaderboard.sort((a, b) -> -Integer.compare(a[1], b[1]));
+			this.leaderboard = nextLeaderboard;
+		}
+		
+		public void exit() {
+			this.isRunning = false;
+		}
 	}
 	
 	class PacketSender {
@@ -578,6 +693,12 @@ public class NetworkingTest extends State {
 			this.packet.add((byte) (0xFF & (a >> 16)));
 			this.packet.add((byte) (0xFF & (a >> 8)));
 			this.packet.add((byte) (0xFF & (a >> 0)));
+		}
+		
+		public void write(int[] a) {
+			for(int i : a) {
+				this.writeInt(i);
+			}
 		}
 	}
 	
@@ -635,6 +756,14 @@ public class NetworkingTest extends State {
 			for(int i = start; i < start + 4; i++) {
 				ans <<= 8;
 				ans |= (int) packet[i] & 0xFF;
+			}
+			return ans;
+		}
+		
+		public int[] readNInts(byte[] packet, int start, int n) {
+			int[] ans = new int[n];
+			for(int i = 0; i < n; i++) {
+				ans[i] = this.readInt(packet, start + i * 4);
 			}
 			return ans;
 		}
