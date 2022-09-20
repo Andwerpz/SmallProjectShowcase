@@ -1,6 +1,9 @@
 package state;
 
+import java.awt.BasicStroke;
+import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
@@ -8,6 +11,7 @@ import java.awt.datatransfer.StringSelection;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
+import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -20,7 +24,9 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Queue;
 
 import input.Button;
 import input.InputManager;
@@ -39,8 +45,8 @@ public class NetworkingTest extends State {
 	private boolean connectionAttemptFailed = false;
 	private Socket socket;
 	private PacketListener packetListener;
-	private DataInputStream dis;
-	private DataOutputStream dos;
+	private PacketSender packetSender;
+	private Color clientColor;
 	
 	// -- SERVER / HOST --
 	private boolean isHosting = false;
@@ -49,6 +55,16 @@ public class NetworkingTest extends State {
 	// -- GRAPHICS --
 	private ArrayList<Point> mousePositions;
 	private int numConnectedClients = 0;
+	private boolean mousePressed = false;
+	private Point prevMouse = new Point(0, 0);
+	
+	private int canvasWidth = 640;
+	private int canvasHeight = 550;
+	private int canvasX = 135;
+	private int canvasY = 25;
+	private BufferedImage canvas;
+	
+	private ArrayList<int[]> drawnLines;	//buffer drawn lines to be sent to the server
 
 	public NetworkingTest(StateManager gsm) {
 		super(gsm);
@@ -66,6 +82,16 @@ public class NetworkingTest extends State {
 		this.im.addInput(new Button(10, 240, 100, 25, "Stop Hosting", "btn_stop_hosting"));
 		
 		this.mousePositions = new ArrayList<>();
+		
+		this.canvas = new BufferedImage(this.canvasWidth, this.canvasHeight, BufferedImage.TYPE_INT_ARGB);
+		this.drawnLines = new ArrayList<>();
+		
+		float r = (float) Math.random();
+		float g = (float) Math.random();
+		float b = (float) Math.random();
+		this.clientColor = new Color(r, g, b);
+		
+		this.packetSender = new PacketSender();
 
 		InetAddress localhost = null;
 		try {
@@ -96,8 +122,6 @@ public class NetworkingTest extends State {
 		this.connectionAttemptFailed = false;
 		try {
 			this.socket = new Socket(this.ip, this.port);
-			this.dos = new DataOutputStream(this.socket.getOutputStream());
-			this.dis = new DataInputStream(this.socket.getInputStream());
 		} catch (IOException e) {
 			this.connectionAttemptFailed = true;
 			System.out.println("Unable to connect to the address: " + ip + ":" + port);
@@ -106,6 +130,8 @@ public class NetworkingTest extends State {
 		System.out.println("Successfully connected to the address: " + ip + ":" + port);
 		this.connectedToServer = true;
 		this.packetListener = new PacketListener(this.socket, "Client");
+		this.canvas = new BufferedImage(this.canvasWidth, this.canvasHeight, BufferedImage.TYPE_INT_ARGB);
+		this.drawnLines = new ArrayList<>();
 		return true;
 	}
 	
@@ -134,13 +160,36 @@ public class NetworkingTest extends State {
 		
 		this.im.tick(mouse2);
 		
+		if(this.mousePressed) {
+			int x1 = this.prevMouse.x - this.canvasX;
+			int y1 = this.prevMouse.y - this.canvasY;
+			int x2 = mouse2.x - this.canvasX;
+			int y2 = mouse2.y - this.canvasY;
+			
+			Graphics gImg = this.canvas.getGraphics();
+			gImg.setColor(this.clientColor);
+			Graphics2D gImg2D = (Graphics2D) gImg;
+			gImg2D.setStroke(new BasicStroke(5, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+			gImg.drawLine(x1, y1, x2, y2);
+			
+			this.drawnLines.add(new int[] {x1, y1, x2, y2, this.clientColor.getRGB()});
+		}
+		
 		if(this.connectedToServer) {
 			// -- WRITE --
 			try {
-				this.dos.writeInt(8);
-				this.dos.writeInt(mouse2.x);
-				this.dos.writeInt(mouse2.y);
-				this.dos.flush();
+				this.packetSender.writeInt(mouse2.x);
+				this.packetSender.writeInt(mouse2.y);
+				
+				this.packetSender.writeInt(this.drawnLines.size());
+				for(int[] a : this.drawnLines) {
+					for(int i = 0; i < 5; i++) {
+						this.packetSender.writeInt(a[i]);
+					}
+				}
+				this.packetSender.flush(this.socket);
+				
+				this.drawnLines.clear();
 			} catch(IOException e) {
 				e.printStackTrace();
 			} 
@@ -151,23 +200,58 @@ public class NetworkingTest extends State {
 				this.connectedToServer = false;
 			}
 			
-			byte[] packet = this.packetListener.getPacket();
-			this.numConnectedClients = this.packetListener.readInt(packet, 0);
-			int ptr = 4;
-			this.mousePositions.clear();
-			for(int i = 0; i < this.numConnectedClients; i++) {
-				int mouseX = this.packetListener.readInt(packet, ptr);
-				int mouseY = this.packetListener.readInt(packet, ptr + 4);
-				ptr += 8;
-				this.mousePositions.add(new Point(mouseX, mouseY));
+			while(this.packetListener.hasPacket()) {
+				byte[] packet = this.packetListener.getPacket();
+				this.numConnectedClients = this.packetListener.readInt(packet, 0);
+				int numMouses = this.packetListener.readInt(packet, 4);
+				int ptr = 8;
+				this.mousePositions.clear();
+				for(int i = 0; i < numMouses; i++) {
+					int mouseX = this.packetListener.readInt(packet, ptr);
+					int mouseY = this.packetListener.readInt(packet, ptr + 4);
+					ptr += 8;
+					this.mousePositions.add(new Point(mouseX, mouseY));
+				}
+				
+				int numLines = this.packetListener.readInt(packet, ptr);
+				ptr += 4;
+				
+				if(packet.length - ptr < numLines * 20) {
+					System.out.println("LINE ERR " + numLines);
+					ptr = 0;
+					while(packet.length >= ptr + 4) {
+						System.out.println(this.packetListener.readInt(packet, ptr));
+						ptr += 4;
+					}
+					continue;
+				}
+				
+				for(int i = 0; i < numLines; i++) {
+					int[] line = new int[5];
+					for(int j = 0; j < 5; j++) {
+						line[j] = this.packetListener.readInt(packet, ptr);
+						ptr += 4;
+					}
+					
+					Graphics gImg = this.canvas.getGraphics();
+					gImg.setColor(new Color(line[4]));
+					Graphics2D gImg2D = (Graphics2D) gImg;
+					gImg2D.setStroke(new BasicStroke(5, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+					gImg.drawLine(line[0], line[1], line[2], line[3]);
+				}
 			}
+			
 		}
 		
+		this.prevMouse = new Point(mouse2.x, mouse2.y);
 	}
 
 	@Override
 	public void draw(Graphics g) {
 		this.im.draw(g);
+		g.drawImage(this.canvas, this.canvasX, this.canvasY, null);
+		g.drawRect(canvasX, canvasY, canvasWidth, canvasHeight);
+		
 		if(this.connectedToServer) {
 			g.drawString(numConnectedClients + " client" + (numConnectedClients > 1? "s" : "") + " connected", 10, 10);
 			g.drawString(this.isHosting? "HOST" : "CLIENT", 10, 30);
@@ -183,6 +267,7 @@ public class NetworkingTest extends State {
 		for(Point p : this.mousePositions) {
 			g.drawRect(p.x - 2, p.y - 2, 4, 4);
 		}
+		
 	}
 	
 	private void copyToClipboard(String s) {
@@ -198,6 +283,9 @@ public class NetworkingTest extends State {
 		if(arg0.getKeyCode() == KeyEvent.VK_ESCAPE) {
 			if(this.networkingTestServer != null) {
 				this.networkingTestServer.exit();
+			}
+			if(this.packetListener != null) {
+				this.packetListener.exit();
 			}
 			this.exit();
 		}
@@ -216,32 +304,35 @@ public class NetworkingTest extends State {
 	@Override
 	public void mouseClicked(MouseEvent arg0) {
 		String which = this.im.mouseClicked(arg0);
-		switch(which) {
-		case "btn_copy_local_ip":
-			this.copyToClipboard(this.localIPAddress);
-			break;
-			
-		case "btn_copy_public_ip":
-			this.copyToClipboard(this.publicIPAddress);
-			break;
-			
-		case "btn_connect":
-			this.ip = this.im.getText("tf_connect_ip");
-			this.port = Integer.parseInt(this.im.getText("tf_connect_port"));
-			if(this.packetListener != null) {
-				this.packetListener.exit();
+		if(which != null) {
+			switch(which) {
+			case "btn_copy_local_ip":
+				this.copyToClipboard(this.localIPAddress);
+				break;
+				
+			case "btn_copy_public_ip":
+				this.copyToClipboard(this.publicIPAddress);
+				break;
+				
+			case "btn_connect":
+				this.ip = this.im.getText("tf_connect_ip");
+				this.port = Integer.parseInt(this.im.getText("tf_connect_port"));
+				if(this.packetListener != null) {
+					this.packetListener.exit();
+				}
+				this.connect();
+				break;
+				
+			case "btn_start_hosting":
+				this.startHosting(Integer.parseInt(this.im.getText("tf_host_port")));
+				break;
+				
+			case "btn_stop_hosting":
+				this.stopHosting();
+				break;
 			}
-			this.connect();
-			break;
-			
-		case "btn_start_hosting":
-			this.startHosting(Integer.parseInt(this.im.getText("tf_host_port")));
-			break;
-			
-		case "btn_stop_hosting":
-			this.stopHosting();
-			break;
 		}
+		
 	}
 
 	@Override
@@ -259,11 +350,13 @@ public class NetworkingTest extends State {
 	@Override
 	public void mousePressed(MouseEvent arg0) {
 		this.im.mousePressed(arg0);
+		this.mousePressed = true;
 	}
 
 	@Override
 	public void mouseReleased(MouseEvent arg0) {
 		this.im.mouseReleased(arg0);
+		this.mousePressed = false;
 	}
 
 	@Override
@@ -287,6 +380,7 @@ public class NetworkingTest extends State {
 		private ServerSocket serverSocket;
 		private ArrayList<Socket> clientSockets;
 		private ArrayList<PacketListener> packetListeners;
+		private PacketSender packetSender;
 		
 		public NetworkingTestServer(String ip, int port) {
 			this.ip = ip;
@@ -302,6 +396,7 @@ public class NetworkingTest extends State {
 			this.clientSockets = new ArrayList<>();
 			this.packetListeners = new ArrayList<>();
 			this.serverRequestListener = new ServerRequestListener(this.serverSocket);
+			this.packetSender = new PacketSender();
 			
 			this.start();
 		}
@@ -345,6 +440,7 @@ public class NetworkingTest extends State {
 			
 			// -- READ --	//should open for whenever
 			ArrayList<Point> mousePositions = new ArrayList<>();
+			ArrayList<int[]> newDrawnLines = new ArrayList<>();
 			for(int i = this.clientSockets.size() - 1; i >= 0; i--) {
 				if(!this.packetListeners.get(i).isConnected()) {
 					//client disconnected
@@ -360,29 +456,45 @@ public class NetworkingTest extends State {
 					this.clientSockets.remove(i);
 					continue;
 				}
-				byte[] packet = this.packetListeners.get(i).getPacket();
-				if(packet.length >= 8) {
+				
+				while(this.packetListeners.get(i).hasPacket()) {
+					byte[] packet = this.packetListeners.get(i).getPacket();
 					int mouseX = this.packetListeners.get(i).readInt(packet, 0);
 					int mouseY = this.packetListeners.get(i).readInt(packet, 4);
 					mousePositions.add(new Point(mouseX, mouseY));
+					
+					int numLines = this.packetListeners.get(i).readInt(packet, 8);
+					int ptr = 12;
+					for(int j = 0; j < numLines; j++) {
+						int[] line = new int[5];
+						for(int k = 0; k < 5; k++) {
+							line[k] = this.packetListeners.get(i).readInt(packet, ptr);
+							ptr += 4;
+						}
+						newDrawnLines.add(line);
+					}
 				}
+				
 			}
-			
-			int packetSize = 4 + mousePositions.size() * 8;
 			
 			// -- WRITE --	//should run at set tickrate
 			for(int i = this.clientSockets.size() - 1; i >= 0; i--) {
 				Socket s = this.clientSockets.get(i);
 				try {
-					DataOutputStream dos = new DataOutputStream(s.getOutputStream());
-					
-					dos.writeInt(packetSize);
-					dos.writeInt(this.clientSockets.size());
+					this.packetSender.writeInt(this.clientSockets.size());
+					this.packetSender.writeInt(mousePositions.size());
 					for(Point p : mousePositions) {
-						dos.writeInt(p.x);
-						dos.writeInt(p.y);
+						this.packetSender.writeInt(p.x);
+						this.packetSender.writeInt(p.y);
 					}
-					dos.flush();
+					
+					this.packetSender.writeInt(newDrawnLines.size());
+					for(int[] a : newDrawnLines) {
+						for(int j = 0; j < 5; j++) {
+							this.packetSender.writeInt(a[j]);
+						}
+					}
+					this.packetSender.flush(s);
 				} catch(IOException e) {
 					e.printStackTrace();
 				}
@@ -414,13 +526,41 @@ public class NetworkingTest extends State {
 		
 	}
 	
+	class PacketSender {
+		private ArrayList<Byte> packet;
+		
+		public PacketSender() {
+			this.packet = new ArrayList<>();
+		}
+		
+		public void flush(Socket socket) throws IOException {
+			int packetSize = this.packet.size();
+			byte[] packetArr = new byte[packetSize];
+			for(int i = 0; i < packetSize; i++) {
+				packetArr[i] = packet.get(i);
+			}
+			this.packet.clear();
+			DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+			dos.writeInt(packetSize);
+			dos.write(packetArr);
+			dos.flush();
+		}
+		
+		public void writeInt(int a) {
+			this.packet.add((byte) (0xFF & (a >> 24)));
+			this.packet.add((byte) (0xFF & (a >> 16)));
+			this.packet.add((byte) (0xFF & (a >> 8)));
+			this.packet.add((byte) (0xFF & (a >> 0)));
+		}
+	}
+	
 	class PacketListener implements Runnable {
 		private boolean isRunning = true;
 		private Thread thread;
 		private String name;
 		
 		private Socket socket;	//socket on which to listen for packets
-		private byte[] packet;
+		private Queue<byte[]> packets;
 		private boolean isConnected;
 		
 		private long lastPacketTime;
@@ -428,7 +568,7 @@ public class NetworkingTest extends State {
 		
 		public PacketListener(Socket socket, String name) {
 			this.socket = socket;
-			this.packet = new byte[0];
+			this.packets = new ArrayDeque<>();
 			this.name = name;
 			this.isConnected = true;
 			this.lastPacketTime = System.currentTimeMillis();
@@ -447,8 +587,12 @@ public class NetworkingTest extends State {
 			}
 		}
 		
+		public boolean hasPacket() {
+			return this.packets.size() != 0;
+		}
+		
 		public byte[] getPacket() {
-			return this.packet;
+			return packets.poll();
 		}
 		
 		public boolean isConnected() {
@@ -472,7 +616,7 @@ public class NetworkingTest extends State {
 			try {
 				DataInputStream dis = new DataInputStream(this.socket.getInputStream());
 				int packetSize = dis.readInt();
-				this.packet = this.readNBytes(packetSize, dis);
+				this.packets.add(this.readNBytes(packetSize, dis));
 				//System.out.println(this.name + " read packet of size " + packetSize);
 			} catch(IOException e) {
 				//probably closed connection
