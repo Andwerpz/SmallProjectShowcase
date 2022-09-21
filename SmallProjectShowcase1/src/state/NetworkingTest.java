@@ -786,13 +786,13 @@ public class NetworkingTest extends State {
 			return ans;
 		}
 		
-		public byte readByte() {
+		public byte readByte() throws ArrayIndexOutOfBoundsException {
 			byte ans = this.packet[this.readPtr];
 			this.readPtr ++;
 			return ans;
 		}
 		
-		public int[] readNInts(int n) {
+		public int[] readNInts(int n) throws ArrayIndexOutOfBoundsException {
 			int[] ans = new int[n];
 			for(int i = 0; i < n; i++) {
 				ans[i] = this.readInt();
