@@ -350,7 +350,7 @@ public class NetworkingTest extends State {
 			this.exit();
 		}
 		
-		else if(arg0.getKeyCode() == KeyEvent.VK_C) {
+		else if(arg0.getKeyCode() == KeyEvent.VK_SEMICOLON) {
 			this.strokeWidth = this.strokeWidth == 5? 50 : 5;
 		}
 	}
