@@ -17,6 +17,7 @@ import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
@@ -150,12 +151,17 @@ public class NetworkingTest extends State {
 		this.connectionAttemptFailed = false;
 		
 		try {
-			this.socket.close();
+			if(this.socket != null) {
+				this.socket.close();
+			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		this.packetListener.exit();
+		if(this.packetListener != null) {
+			this.packetListener.exit();
+		}
+		
 		((TextField) this.im.getInput("tf_rgb_hex")).enable();
 	}
 	
@@ -232,40 +238,22 @@ public class NetworkingTest extends State {
 				this.disconnect();
 			}
 			
-			while(this.packetListener.hasPacket()) {
-				byte[] packet = this.packetListener.getPacket();
-				this.numConnectedClients = this.packetListener.readInt(packet, 0);
+			while(this.packetListener.nextPacket()) {
+				this.numConnectedClients = this.packetListener.readInt();
 				
 				//Mouse positions
-				int numMouses = this.packetListener.readInt(packet, 4);
-				int ptr = 8;
+				int numMouses = this.packetListener.readInt();
 				this.mousePositions.clear();
 				for(int i = 0; i < numMouses; i++) {
-					int mouseX = this.packetListener.readInt(packet, ptr);
-					int mouseY = this.packetListener.readInt(packet, ptr + 4);
-					ptr += 8;
+					int mouseX = this.packetListener.readInt();
+					int mouseY = this.packetListener.readInt();
 					this.mousePositions.add(new Point(mouseX, mouseY));
 				}
 				
 				//Lines drawn
-				int numLines = this.packetListener.readInt(packet, ptr);
-				ptr += 4;
-				if(packet.length - ptr < numLines * 20) {
-					System.out.println("LINE ERR " + numLines);
-					ptr = 0;
-					while(packet.length >= ptr + 4) {
-						System.out.println(this.packetListener.readInt(packet, ptr));
-						ptr += 4;
-					}
-					continue;
-				}
-				
+				int numLines = this.packetListener.readInt();
 				for(int i = 0; i < numLines; i++) {
-					int[] line = new int[6];
-					for(int j = 0; j < 6; j++) {
-						line[j] = this.packetListener.readInt(packet, ptr);
-						ptr += 4;
-					}
+					int[] line = this.packetListener.readNInts(6);
 					
 					int strokeWidth = line[5];
 					Graphics gImg = this.canvas.getGraphics();
@@ -276,25 +264,17 @@ public class NetworkingTest extends State {
 				}
 				
 				//Update pixels
-				int numUpdatePixels = this.packetListener.readInt(packet, ptr);
-				ptr += 4;
+				int numUpdatePixels = this.packetListener.readInt();
 				for(int i = 0; i < numUpdatePixels; i++) {
-					int[] pixel = new int[3];
-					for(int j = 0; j < 3; j++) {
-						pixel[j] = this.packetListener.readInt(packet, ptr);
-						ptr += 4;
-					}
-					
+					int[] pixel = this.packetListener.readNInts(3);
 					this.canvas.setRGB(pixel[0], pixel[1], pixel[2]);
 				}
 				
 				//Leaderboard;
-				int numLeaderboardPositions = this.packetListener.readInt(packet, ptr);
-				ptr += 4;
+				int numLeaderboardPositions = this.packetListener.readInt();
 				this.leaderboard.clear();
 				for(int i = 0; i < numLeaderboardPositions; i++) {
-					this.leaderboard.add(this.packetListener.readNInts(packet, ptr, 2));
-					ptr += 8;
+					this.leaderboard.add(this.packetListener.readNInts(2));
 				}
 			}
 			
@@ -559,20 +539,14 @@ public class NetworkingTest extends State {
 					continue;
 				}
 				
-				while(this.packetListeners.get(i).hasPacket()) {
-					byte[] packet = this.packetListeners.get(i).getPacket();
-					int mouseX = this.packetListeners.get(i).readInt(packet, 0);
-					int mouseY = this.packetListeners.get(i).readInt(packet, 4);
+				while(this.packetListeners.get(i).nextPacket()) {
+					int mouseX = this.packetListeners.get(i).readInt();
+					int mouseY = this.packetListeners.get(i).readInt();
 					mousePositions.add(new Point(mouseX, mouseY));
 					
-					int numLines = this.packetListeners.get(i).readInt(packet, 8);
-					int ptr = 12;
+					int numLines = this.packetListeners.get(i).readInt();
 					for(int j = 0; j < numLines; j++) {
-						int[] line = new int[6];
-						for(int k = 0; k < 6; k++) {
-							line[k] = this.packetListeners.get(i).readInt(packet, ptr);
-							ptr += 4;
-						}
+						int[] line = this.packetListeners.get(i).readNInts(6);
 						
 						//draw line on canvas
 						int strokeWidth = line[5];
@@ -760,7 +734,9 @@ public class NetworkingTest extends State {
 		private String name;
 		
 		private Socket socket;	//socket on which to listen for packets
-		private Queue<byte[]> packets;
+		private Queue<byte[]> packetQueue;
+		private byte[] packet;
+		private int readPtr;
 		private boolean isConnected;
 		
 		private long lastPacketTime;
@@ -768,7 +744,7 @@ public class NetworkingTest extends State {
 		
 		public PacketListener(Socket socket, String name) {
 			this.socket = socket;
-			this.packets = new ArrayDeque<>();
+			this.packetQueue = new ArrayDeque<>();
 			this.name = name;
 			this.isConnected = true;
 			this.lastPacketTime = System.currentTimeMillis();
@@ -787,12 +763,13 @@ public class NetworkingTest extends State {
 			}
 		}
 		
-		public boolean hasPacket() {
-			return this.packets.size() != 0;
-		}
-		
-		public byte[] getPacket() {
-			return packets.poll();
+		public boolean nextPacket() {
+			if(this.packetQueue.size() == 0) {
+				return false;
+			}
+			this.packet = this.packetQueue.poll();
+			this.readPtr = 0;
+			return true;
 		}
 		
 		public boolean isConnected() {
@@ -800,22 +777,25 @@ public class NetworkingTest extends State {
 			return timeFromLastPacket < timeoutMillis && isConnected;
 		}
 		
-		public int readInt(byte[] packet, int start) {
+		public int readInt() throws ArrayIndexOutOfBoundsException {
 			int ans = 0;
-			if(packet.length < start + 4) {	//not enough bytes to read from start
-				return 0;
-			}
-			for(int i = start; i < start + 4; i++) {
+			for(int i = 0; i < 4; i++) {
 				ans <<= 8;
-				ans |= (int) packet[i] & 0xFF;
+				ans |= (int) this.readByte() & 0xFF;
 			}
 			return ans;
 		}
 		
-		public int[] readNInts(byte[] packet, int start, int n) {
+		public byte readByte() {
+			byte ans = this.packet[this.readPtr];
+			this.readPtr ++;
+			return ans;
+		}
+		
+		public int[] readNInts(int n) {
 			int[] ans = new int[n];
 			for(int i = 0; i < n; i++) {
-				ans[i] = this.readInt(packet, start + i * 4);
+				ans[i] = this.readInt();
 			}
 			return ans;
 		}
@@ -824,7 +804,7 @@ public class NetworkingTest extends State {
 			try {
 				DataInputStream dis = new DataInputStream(this.socket.getInputStream());
 				int packetSize = dis.readInt();
-				this.packets.add(this.readNBytes(packetSize, dis));
+				this.packetQueue.add(this.readNBytes(packetSize, dis));
 				//System.out.println(this.name + " read packet of size " + packetSize);
 			} catch(IOException e) {
 				//probably closed connection
