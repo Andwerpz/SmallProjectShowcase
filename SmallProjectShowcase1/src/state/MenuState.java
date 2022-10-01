@@ -115,14 +115,17 @@ class MainScrollWindow extends ScrollWindow{
 			"Impulse Resolution",
 			"Fruit Ninja",
 			"Isometric Map Maker",
-			"Networking Test"
+			"Networking Test",
+			"Text Alignment",
 			};
 
 	public MainScrollWindow(int x, int y, int width, int height, int realHeight) {
 		super(x, y, width, height, realHeight);
 		
 		for(int i = 0; i < projects.length; i++) {
-			im.addInput(new Button(20, i * 50 + 20, 150, 25, projects[i], projects[i]));
+			int by = (i / 4) * 50 + 20;
+			int bx = (i % 4) * 170 + 20;
+			im.addInput(new Button(bx, by, 150, 25, projects[i], projects[i]));
 		}
 	}
 
@@ -208,6 +211,10 @@ class MainScrollWindow extends ScrollWindow{
 				
 			case "Networking Test":
 				MainPanel.gsm.states.push(new NetworkingTest(MainPanel.gsm));
+				break;
+				
+			case "Text Alignment":
+				MainPanel.gsm.states.push(new TextAlignment(MainPanel.gsm));
 				break;
 			}
 		}

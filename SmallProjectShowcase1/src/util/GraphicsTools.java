@@ -7,7 +7,10 @@ import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
+import java.awt.Rectangle;
 import java.awt.RenderingHints;
+import java.awt.font.FontRenderContext;
+import java.awt.font.GlyphVector;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.awt.image.BufferedImageOp;
@@ -35,13 +38,90 @@ public class GraphicsTools {
 		int width = GraphicsTools.calculateTextWidth(s, f);
 		g.setFont(f);
 		g.setColor(c);
-		g.drawString(s, x - width / 2, y - f.getSize() / 2);
+		g.drawString(s, x - width / 2, y + f.getSize() / 2);
 	}
 	
 	public static int calculateTextWidth(String text, Font font) {
 		BufferedImage img = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
 		FontMetrics fm = img.getGraphics().getFontMetrics(font);
 		return fm.stringWidth(text);
+	}
+	
+	public static int getFontHeight(Font font) {
+		BufferedImage img = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+		FontMetrics fm = img.getGraphics().getFontMetrics(font);
+		return fm.getHeight();
+	}
+
+	public static int getFontMaxAscent(Font font) {
+		BufferedImage img = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+		FontMetrics fm = img.getGraphics().getFontMetrics(font);
+		return fm.getMaxAscent();
+	}
+
+	public static int getFontAscent(Font font) {
+		BufferedImage img = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+		FontMetrics fm = img.getGraphics().getFontMetrics(font);
+		return fm.getAscent();
+	}
+
+	public static int getFontMaxDescent(Font font) {
+		BufferedImage img = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+		FontMetrics fm = img.getGraphics().getFontMetrics(font);
+		return fm.getMaxDescent();
+	}
+	
+	public static int getFontDescent(Font font) {
+		BufferedImage img = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+		FontMetrics fm = img.getGraphics().getFontMetrics(font);
+		return fm.getDescent();
+	}
+	
+	public static Rectangle getStringBounds(Graphics g, String str, float x, float y) {
+		Graphics2D g2 = (Graphics2D) g;
+		FontRenderContext frc = g2.getFontRenderContext();
+		GlyphVector gv = g2.getFont().createGlyphVector(frc, str);
+		return gv.getPixelBounds(null, x, y);
+	}
+	
+	public static BufferedImage generateTextImage(String text, Font font, Color c) {
+		int textMaxDescent = GraphicsTools.getFontMaxDescent(font);
+		int textMaxAscent = GraphicsTools.getFontMaxAscent(font);
+		
+		int textSampleAscent = GraphicsTools.getFontSampleAscent(font);
+		int textSampleDescent = GraphicsTools.getFontSampleDescent(font);
+		
+		textMaxAscent = Math.max(textSampleAscent, textMaxAscent);
+		textMaxDescent = Math.max(textSampleDescent, textMaxDescent);
+
+		int textWidth = GraphicsTools.calculateTextWidth(text, font);
+		
+		BufferedImage img = new BufferedImage(textWidth, textMaxDescent + textMaxAscent, BufferedImage.TYPE_INT_ARGB);
+		Graphics g = img.getGraphics();
+		enableAntialiasing(g);
+		g.setFont(font);
+		g.setColor(c);
+		g.drawString(text, 0, textMaxAscent);
+		
+		return img;
+	}
+	
+	public static int getFontSampleDescent(Font font) {
+		BufferedImage img = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+		Graphics g = img.getGraphics();
+		g.setFont(font);
+		String sampleText = "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz1234567890";
+		Rectangle textBounds = getStringBounds(g, sampleText, 0, 0);
+		return (int) (textBounds.getMaxY());
+	}
+	
+	public static int getFontSampleAscent(Font font) {
+		BufferedImage img = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+		Graphics g = img.getGraphics();
+		g.setFont(font);
+		String sampleText = "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz1234567890";
+		Rectangle textBounds = getStringBounds(g, sampleText, 0, 0);
+		return (int) (textBounds.getHeight() - textBounds.getMaxY());
 	}
 	
 	public static void enableTextAntialiasing(Graphics g) {
