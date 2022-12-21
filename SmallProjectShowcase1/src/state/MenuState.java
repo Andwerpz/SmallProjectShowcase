@@ -117,6 +117,7 @@ class MainScrollWindow extends ScrollWindow{
 			"Isometric Map Maker",
 			"Networking Test",
 			"Text Alignment",
+			"Curve Editor",
 			};
 
 	public MainScrollWindow(int x, int y, int width, int height, int realHeight) {
@@ -215,6 +216,10 @@ class MainScrollWindow extends ScrollWindow{
 				
 			case "Text Alignment":
 				MainPanel.gsm.states.push(new TextAlignment(MainPanel.gsm));
+				break;
+				
+			case "Curve Editor":
+				MainPanel.gsm.states.push(new CurveEditor(MainPanel.gsm));
 				break;
 			}
 		}
