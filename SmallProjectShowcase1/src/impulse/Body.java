@@ -2,7 +2,7 @@ package impulse;
 
 import util.Vec2;
 
-public class Body{
+public class Body {
 	public final Vec2 position = new Vec2();
 	public final Vec2 velocity = new Vec2();
 	public final Vec2 force = new Vec2();
