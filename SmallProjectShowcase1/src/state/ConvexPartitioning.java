@@ -16,7 +16,7 @@ import myutils.v10.math.MathUtils;
 
 public class ConvexPartitioning extends State {
 
-	//generates optimal concave partitions for polygons
+	//generates optimal convex partitions for polygons
 
 	private InputManager im;
 
@@ -275,7 +275,7 @@ class Polygon {
 		this.trianglePartitions = new ArrayList<>();
 
 		this.controlPoints.addAll(controlPoints);
-		this.concavePartitions = MathUtils.calculateConcavePartition(this.controlPoints);
+		this.concavePartitions = MathUtils.calculateConvexPartition(this.controlPoints);
 		this.trianglePartitions = MathUtils.calculateTrianglePartition(this.controlPoints);
 	}
 
