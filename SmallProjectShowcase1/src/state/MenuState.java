@@ -27,7 +27,6 @@ public class MenuState extends State {
 		super(gsm);
 
 		sw = new MainScrollWindow(10, 10, MainPanel.WIDTH - 20, MainPanel.HEIGHT - 20, 1000);
-
 	}
 
 	@Override
@@ -99,7 +98,7 @@ public class MenuState extends State {
 class MainScrollWindow extends ScrollWindow {
 
 	String[] projects = new String[] { "Inverse Kinematics", "Metaballs", "Fireworks", "Verlet Physics", "Cloth Physics", "Roguelike Map Generator", "Implicit Graph", "HexToImg", "Kernel Convolution", "TSP Genetic Algorithm", "Tic Tac Toe Q Learning", "Driving Q Learning", "Synthwave Scroller",
-			"Impulse Resolution", "Fruit Ninja", "Isometric Map Maker", "Networking Test", "Text Alignment", "Curve Editor", "Convex Partitioning", "Force Directed Graph", };
+			"Impulse Resolution", "Fruit Ninja", "Isometric Map Maker", "Networking Test", "Text Alignment", "Curve Editor", "Convex Partitioning", "Force Directed Graph", "Jane Street : Hooks 9" };
 
 	public MainScrollWindow(int x, int y, int width, int height, int realHeight) {
 		super(x, y, width, height, realHeight);
@@ -209,6 +208,10 @@ class MainScrollWindow extends ScrollWindow {
 
 			case "Force Directed Graph":
 				MainPanel.gsm.states.push(new ForceDirectedGraph(MainPanel.gsm));
+				break;
+
+			case "Jane Street : Hooks 9":
+				MainPanel.gsm.states.push(new JSHooks9(MainPanel.gsm));
 				break;
 			}
 		}
