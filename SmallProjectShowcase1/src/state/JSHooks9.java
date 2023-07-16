@@ -11,6 +11,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 
 import input.Button;
@@ -18,16 +19,19 @@ import input.InputManager;
 import main.MainPanel;
 import myutils.v10.graphics.GraphicsTools;
 import myutils.v10.math.Vec2;
+import myutils.v10.misc.Pair;
 
 public class JSHooks9 extends State {
 
 	// -- HEURISTICS --
 	// Implemented:
-	// 0. hook 2 cannot have 3 assigned to it. If it does, then there are no valid digit placements. 
+	// 1. hook 2 cannot have 3 assigned to it. If it does, then there are no valid digit placements. 
 
 	// Not Implemented:
+	// 2. a 5 has to appear in row and column 1
+	// 3. a 7 has to appear in row and column 8
 
-	public static final int GRID_SIZE = 9;
+	public static final int GRID_SIZE = 6;
 	public static final int CELL_SIZE_PX = 50;
 
 	public static final int BOARD_SIZE_PX = GRID_SIZE * CELL_SIZE_PX;
@@ -121,7 +125,7 @@ public class JSHooks9 extends State {
 		int curCells = ind * 2 + 1;
 		for (int i = 0; i < Math.min(v.length, curCells); i++) {
 
-			//Heuristic 0
+			//Heuristic 1
 			if (ind == 1 && i == 2) {
 				continue;
 			}
@@ -349,14 +353,14 @@ public class JSHooks9 extends State {
 
 			g2.setColor(JSHooks9.gridColor);
 
-			//gridlines
-			g2.setStroke(JSHooks9.gridlineStroke);
-			for (int i = 0; i <= JSHooks9.GRID_SIZE; i++) {
-				for (int j = 0; j <= JSHooks9.GRID_SIZE; j++) {
-					g2.drawLine(i * CELL_SIZE_PX, 0, i * CELL_SIZE_PX, BOARD_SIZE_PX);
-					g2.drawLine(0, i * CELL_SIZE_PX, BOARD_SIZE_PX, i * CELL_SIZE_PX);
-				}
-			}
+//			//gridlines
+//			g2.setStroke(JSHooks9.gridlineStroke);
+//			for (int i = 0; i <= JSHooks9.GRID_SIZE; i++) {
+//				for (int j = 0; j <= JSHooks9.GRID_SIZE; j++) {
+//					g2.drawLine(i * CELL_SIZE_PX, 0, i * CELL_SIZE_PX, BOARD_SIZE_PX);
+//					g2.drawLine(0, i * CELL_SIZE_PX, BOARD_SIZE_PX, i * CELL_SIZE_PX);
+//				}
+//			}
 
 			//border
 			g2.setStroke(JSHooks9.borderStroke);
@@ -369,7 +373,71 @@ public class JSHooks9 extends State {
 		public void setTestcase(Testcase t) {
 			this.testcase = t;
 		}
-
+	}
+	
+	class BooleanGrid extends Object {
+		
+		public boolean[] grid;
+		
+		public BooleanGrid() {
+			this.grid = new boolean[JSHooks9.GRID_SIZE * JSHooks9.GRID_SIZE];
+		}
+		
+		public BooleanGrid(BooleanGrid g) {
+			this.grid = new boolean[JSHooks9.GRID_SIZE * JSHooks9.GRID_SIZE];
+			for(int i = 0; i < g.grid.length; i++) {
+				this.grid[i] = g.grid[i];
+			}
+		}
+		
+		public boolean get(int r, int c) {
+			return this.grid[r * JSHooks9.GRID_SIZE + c];
+		}
+		
+		public void set(int r, int c, boolean val) {
+			this.grid[r * JSHooks9.GRID_SIZE + c] = val;
+		}
+		
+		
+		public boolean equals(Object b) {
+			if(b == null) {
+				return false;
+			}
+			if(b == this) {
+				return true;
+			}
+			if(!(b instanceof BooleanGrid)) {
+				return false;
+			}
+			
+			BooleanGrid g = (BooleanGrid) b;
+			
+			if(g.grid.length != this.grid.length) {
+				return false;
+			}
+			for(int i = 0; i < this.grid.length; i++) {
+				if(this.grid[i] != g.grid[i]) {
+					return false;
+				}
+			}
+			return true;
+		}
+		
+		public int hashCode() {
+			return Arrays.hashCode(this.grid);
+		}
+		
+		public String toString() {
+			String ans = "";
+			for(int i = 0; i < JSHooks9.GRID_SIZE; i++) {
+				for(int j = 0; j < JSHooks9.GRID_SIZE; j++) {
+					ans += (this.get(i, j)? 1 : 0) + " ";
+				}
+				ans += "\n";
+			}
+			return ans;
+		}
+		
 	}
 
 	class Testcase {
@@ -483,18 +551,120 @@ public class JSHooks9 extends State {
 				System.out.println();
 			}
 			System.out.println();
-
-			boolean[][] a = new boolean[JSHooks9.GRID_SIZE][JSHooks9.GRID_SIZE];
+			
+			BooleanGrid a = new BooleanGrid();
+			a.set(minR, minC, true);
 			int[] valueCnt = new int[JSHooks9.GRID_SIZE];
 			valueCnt[0] = 1;
-			a[minR][minC] = true;
-			this.generateAllGridsHelper(minR, minC, valueCnt, a, gridHookValues, this.allGrids);
+			//this.generateAllGridsHelper(minR, minC, valueCnt, a, gridHookValues, this.allGrids);
+			HashSet<BooleanGrid> v = new HashSet<>();
+			this.generateAllGridsHelper2(a, gridHookValues, valueCnt, v, this.allGrids);
 
 			System.out.println("NUM DIGIT PLACEMENTS : " + this.allGrids.size());
 		}
 
 		private int[] dr = { -1, 1, 0, 0 };
 		private int[] dc = { 0, 0, -1, 1 };
+		
+		private BooleanGrid generateAllGridsMakeMove(BooleanGrid a, int r, int c) {
+			BooleanGrid ret = new BooleanGrid(a);
+			ret.set(r, c, true);
+			return ret;
+		}
+		
+		private boolean generateAllGridsIsMoveValid(BooleanGrid a, int r, int c, int[][] gridHookValues, int[] valueCnt) {
+			//is this cell already taken
+			if(a.get(r, c)) {
+				return false;
+			}
+			
+			//is this adjacent to something
+			boolean isAdjacent = false;
+			for(int i = 0; i < 4; i++) {
+				int nr = r + dr[i];
+				int nc = c + dc[i];
+				if(nr < 0 || nc < 0 || nr >= JSHooks9.GRID_SIZE || nc >= JSHooks9.GRID_SIZE) {
+					continue;
+				}
+				if(a.get(nr, nc)) {
+					isAdjacent = true;
+					break;
+				}
+			}
+			if(!isAdjacent) {
+				return false;
+			}
+			
+			//check if will violate 2x2 rule
+			if (r != 0 && c != 0) {
+				if (a.get(r, c - 1) && a.get(r - 1, c) && a.get(r - 1, c - 1)) {
+					return false;
+				}
+			}
+			if (r != 0 && c != JSHooks9.GRID_SIZE - 1) {
+				if (a.get(r, c + 1) && a.get(r - 1, c) && a.get(r - 1, c + 1)) {
+					return false;
+				}
+			}
+			if (r != JSHooks9.GRID_SIZE - 1 && c != 0) {
+				if (a.get(r, c - 1) && a.get(r + 1, c) && a.get(r + 1, c - 1)) {
+					return false;
+				}
+			}
+			if (r != JSHooks9.GRID_SIZE - 1 && c != JSHooks9.GRID_SIZE - 1) {
+				if (a.get(r, c + 1) && a.get(r + 1, c) && a.get(r + 1, c + 1)) {
+					return false;
+				}
+			}
+			
+			//value limit rule
+			if(valueCnt[gridHookValues[r][c] - 1] == gridHookValues[r][c]) {
+				return false;
+			}
+			
+			return true;
+		}
+		
+		private void generateAllGridsHelper2(BooleanGrid a, int[][] gridHookValues, int[] valueCnt, HashSet<BooleanGrid> v, ArrayList<int[][]> ans) {
+			if(v.contains(a)) {
+				return;
+			}
+			v.add(a);
+			
+			//check the number of values
+			boolean done = true;
+			for (int i = 0; i < valueCnt.length; i++) {
+				if (valueCnt[i] != i + 1) {
+					done = false;
+				}
+			}
+
+			//save answer
+			if (done) {
+				System.out.println("FOUND ANSWER");
+				int[][] nans = new int[JSHooks9.GRID_SIZE][JSHooks9.GRID_SIZE];
+				for (int i = 0; i < JSHooks9.GRID_SIZE; i++) {
+					for (int j = 0; j < JSHooks9.GRID_SIZE; j++) {
+						nans[i][j] = a.get(i, j) ? gridHookValues[i][j] : 0;
+					}
+				}
+				ans.add(nans);
+				return;
+			}
+			
+			//propogate further
+			for(int i = 0; i < JSHooks9.GRID_SIZE; i++) {
+				for(int j = 0; j < JSHooks9.GRID_SIZE; j++) {
+					if(!this.generateAllGridsIsMoveValid(a, i, j, gridHookValues, valueCnt)) {
+						continue;
+					}
+					
+					valueCnt[gridHookValues[i][j] - 1] ++;
+					this.generateAllGridsHelper2(this.generateAllGridsMakeMove(a, i, j), gridHookValues, valueCnt, v, ans);
+					valueCnt[gridHookValues[i][j] - 1] --;
+				}
+			}
+		}
 
 		private void generateAllGridsHelper(int r, int c, int[] valueCnt, boolean[][] a, int[][] gridHookValues, ArrayList<int[][]> ans) {
 			//check if previous placement was valid
