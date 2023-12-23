@@ -17,9 +17,9 @@ import java.util.HashSet;
 import input.Button;
 import input.InputManager;
 import main.MainPanel;
-import myutils.v10.graphics.GraphicsTools;
-import myutils.v10.math.Vec2;
-import myutils.v10.misc.Pair;
+import myutils.graphics.GraphicsTools;
+import myutils.math.Vec2;
+import myutils.misc.Pair;
 
 public class JSHooks9 extends State {
 

@@ -11,8 +11,8 @@ import java.util.HashSet;
 
 import input.InputManager;
 import input.ToggleButton;
-import myutils.v10.math.Vec2;
-import myutils.v10.math.MathUtils;
+import myutils.math.Vec2;
+import myutils.math.MathUtils;
 
 public class ConvexPartitioning extends State {
 

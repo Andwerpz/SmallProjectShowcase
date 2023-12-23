@@ -11,9 +11,9 @@ import java.awt.image.AreaAveragingScaleFilter;
 import java.util.ArrayList;
 
 import main.MainPanel;
-import myutils.v10.algorithm.Graph;
-import myutils.v10.graphics.GraphicsTools;
-import myutils.v10.math.Vec2;
+import myutils.algorithm.Graph;
+import myutils.graphics.GraphicsTools;
+import myutils.math.Vec2;
 import util.MathTools;
 
 public class ForceDirectedGraph extends State {
